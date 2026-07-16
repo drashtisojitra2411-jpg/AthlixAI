@@ -279,6 +279,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
                   : 'text-text-muted hover:text-text-primary hover:bg-[var(--color-surface-hover)]',
               )}
               title={collapsed && !isMobile ? item.label : undefined}
+              onClick={item.label === 'Crowd Analytics' ? () => navigate('/dashboard/heatmap') : undefined}
             >
               <item.icon className="size-5 shrink-0" />
               <AnimatePresence>
@@ -348,6 +349,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
    ============================================================ */
 function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
 
   return (
     <motion.header
@@ -380,7 +382,12 @@ function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       <div className="flex items-center gap-2">
         <Badge variant="live" className="hidden sm:inline-flex">MATCH LIVE</Badge>
 
-        <Button variant="copilot" size="sm" className="hidden sm:inline-flex gap-1.5">
+        <Button
+          variant="copilot"
+          size="sm"
+          className="hidden sm:inline-flex gap-1.5"
+          onClick={() => navigate('/dashboard/copilot')}
+        >
           <Sparkles className="size-3.5" /> AI Copilot
         </Button>
 

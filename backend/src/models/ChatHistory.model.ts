@@ -2,11 +2,19 @@ import mongoose, { Schema, type Document, type Model, type Types } from "mongoos
 
 export type ChatRole = "user" | "assistant";
 export type CopilotActionVariant = "primary" | "secondary" | "ghost";
+export type CopilotRiskLevel = "Low" | "Moderate" | "High" | "Critical";
 
 export interface ICopilotAction {
   label: string;
   action: string;
   variant: CopilotActionVariant;
+}
+
+export interface ICopilotActionCard {
+  riskLevel: CopilotRiskLevel;
+  topActions: string[];
+  expectedImpact: string;
+  confidence: number;
 }
 
 export interface ICopilotResponse {
@@ -16,6 +24,11 @@ export interface ICopilotResponse {
   confidence: number;
   reasoning: string;
   suggestedActions: ICopilotAction[];
+  // Additive fields for the Athlix AI Copilot command-center page (/dashboard/copilot).
+  insights?: string[];
+  risks?: string[];
+  riskLevel?: CopilotRiskLevel;
+  actionCard?: ICopilotActionCard;
 }
 
 export interface IChatHistory extends Document {
@@ -42,6 +55,20 @@ const copilotActionSchema = new Schema<ICopilotAction>(
   { _id: false }
 );
 
+const copilotActionCardSchema = new Schema<ICopilotActionCard>(
+  {
+    riskLevel: {
+      type: String,
+      enum: ["Low", "Moderate", "High", "Critical"],
+      required: true,
+    },
+    topActions: { type: [String], default: [] },
+    expectedImpact: { type: String, required: true },
+    confidence: { type: Number, required: true, min: 0, max: 100 },
+  },
+  { _id: false }
+);
+
 const copilotResponseSchema = new Schema<ICopilotResponse>(
   {
     recommendation: { type: String, required: true },
@@ -53,6 +80,14 @@ const copilotResponseSchema = new Schema<ICopilotResponse>(
       type: [copilotActionSchema],
       default: [],
     },
+    insights: { type: [String], default: undefined },
+    risks: { type: [String], default: undefined },
+    riskLevel: {
+      type: String,
+      enum: ["Low", "Moderate", "High", "Critical"],
+      default: undefined,
+    },
+    actionCard: { type: copilotActionCardSchema, default: undefined },
   },
   { _id: false }
 );
