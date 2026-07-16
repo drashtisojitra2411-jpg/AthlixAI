@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap, ArrowRight, Eye, EyeOff, Mail, Lock, User, Building2, Check } from 'lucide-react'
+import { AlertCircle, Zap, ArrowRight, Eye, EyeOff, Mail, Lock, User, Building2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AuroraBackground } from '@/components/ambient/AuroraBackground'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
@@ -26,6 +27,8 @@ const passwordRequirements = [
 ]
 
 export function RegisterPage() {
+  const navigate = useNavigate()
+  const { register, isAuthenticated, error, clearError } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -35,14 +38,28 @@ export function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    clearError()
     setLoading(true)
-    setTimeout(() => setLoading(false), 1500)
+    try {
+      await register(formData.name, formData.email, formData.password)
+      navigate('/dashboard', { replace: true })
+    } catch {
+      // error state is surfaced via useAuth().error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const passedCount = passwordRequirements.filter((r) => r.test(formData.password)).length
@@ -280,6 +297,13 @@ export function RegisterPage() {
                   </motion.div>
                 )}
               </div>
+
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-3.5 py-2.5 text-sm text-error">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
               <Button type="submit" size="lg" className="w-full mt-2" loading={loading}>
                 Create Account <ArrowRight className="size-4" />

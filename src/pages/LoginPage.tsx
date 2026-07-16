@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap, ArrowRight, Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { AlertCircle, Zap, ArrowRight, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AuroraBackground } from '@/components/ambient/AuroraBackground'
+import { useAuth } from '@/contexts/AuthContext'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
@@ -18,16 +19,31 @@ const fadeUp = {
 }
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const { login, isAuthenticated, error, clearError } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    clearError()
     setLoading(true)
-    // UI-only: simulate loading
-    setTimeout(() => setLoading(false), 1500)
+    try {
+      await login(email, password)
+      navigate('/dashboard', { replace: true })
+    } catch {
+      // error state is surfaced via useAuth().error
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -190,6 +206,13 @@ export function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-3.5 py-2.5 text-sm text-error">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
               <Button type="submit" size="lg" className="w-full mt-2" loading={loading}>
                 Sign In <ArrowRight className="size-4" />

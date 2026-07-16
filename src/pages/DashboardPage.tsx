@@ -1,37 +1,49 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, LayoutDashboard, Users, Car, Trophy, AlertTriangle, BarChart3,
   Settings, Bell, Search, Sparkles, ChevronDown, Menu, LogOut,
   TrendingUp, TrendingDown, CloudSun, Clock, Shield,
-  Ticket, MapPin, Megaphone, RefreshCw, Sun, Moon, Droplets, Wind,
-  CalendarDays, Flame, HeartPulse, Siren, Radio,
-  PanelLeftClose, PanelLeft,
+  Ticket, MapPin, RefreshCw, Sun, Moon, Droplets, Wind,
+  CalendarDays, Flame, HeartPulse, Siren, MessageCircle,
+  PanelLeftClose, PanelLeft, AlertCircle, Inbox, Plus, Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { OperationsModules } from '@/components/dashboard/OperationsModules'
-import type {
-  CrowdZoneInput,
-  EmergencyType,
-  ParkingInput,
-  SeatRecommendationInput,
-  TournamentInput,
+import {
+  derivePlatformIntel,
+  type EmergencyType,
+  type SeatRecommendationInput,
+  type WeatherInput,
 } from '@/lib/copilot/engine'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useAuth } from '@/contexts/AuthContext'
+import { useMyEvents } from '@/hooks/useMyEvents'
+import { useEventOperationalData } from '@/hooks/useEventOperationalData'
+import type { ChatMessage } from '@/lib/api/dashboard'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
 /* ============================================================
-   DUMMY DATA
+   STATIC UI CHROME (no backend equivalent — see integration notes)
    ============================================================ */
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Overview', active: true },
   { icon: Users, label: 'Crowd Analytics', badge: 'LIVE' },
-  { icon: Car, label: 'Parking', badge: '3' },
+  { icon: Car, label: 'Parking' },
   { icon: Trophy, label: 'Tournament' },
   { icon: AlertTriangle, label: 'Emergency' },
   { icon: BarChart3, label: 'Revenue' },
@@ -39,54 +51,12 @@ const sidebarItems = [
   { icon: Settings, label: 'Settings' },
 ]
 
-const executiveSummary = [
-  { label: 'Total Attendance', value: 47832, prefix: '', suffix: '', trend: 12.5, icon: Users, color: '#6c63ff' },
-  { label: 'Revenue Today', value: 284500, prefix: '$', suffix: '', trend: 8.3, icon: BarChart3, color: '#3b82f6' },
-  { label: 'Avg. Wait Time', value: 4.2, prefix: '', suffix: 'min', trend: -18.6, icon: Clock, color: '#10b981' },
-  { label: 'Safety Score', value: 98.7, prefix: '', suffix: '%', trend: 2.1, icon: Shield, color: '#f59e0b' },
-]
-
-const crowdAnalytics: CrowdZoneInput[] = [
-  { zone: 'North Stand', capacity: 94, count: 11280, max: 12000, status: 'critical' },
-  { zone: 'South Stand', capacity: 76, count: 9120, max: 12000, status: 'normal' },
-  { zone: 'East Wing', capacity: 88, count: 7040, max: 8000, status: 'warning' },
-  { zone: 'West Wing', capacity: 62, count: 4960, max: 8000, status: 'normal' },
-  { zone: 'VIP Section', capacity: 45, count: 450, max: 1000, status: 'normal' },
-]
-
-const parkingData: Array<Omit<ParkingInput, 'walkingMinutes' | 'gate' | 'trafficLevel'>> = [
-  { lot: 'Lot A', total: 2500, occupied: 2375, status: 'full' },
-  { lot: 'Lot B', total: 2000, occupied: 1640, status: 'available' },
-  { lot: 'Lot C', total: 1800, occupied: 1710, status: 'warning' },
-  { lot: 'Lot D', total: 1500, occupied: 750, status: 'available' },
-  { lot: 'VIP', total: 200, occupied: 156, status: 'available' },
-]
-
-const tournamentTimeline = [
-  { time: '09:00', event: 'Gates Open', status: 'completed', venue: 'All' },
-  { time: '10:30', event: 'Quarter-Final: Team A vs Team B', status: 'completed', venue: 'Court 1' },
-  { time: '10:30', event: 'Quarter-Final: Team C vs Team D', status: 'completed', venue: 'Court 2' },
-  { time: '14:00', event: 'Semi-Final: Winner QF1 vs Winner QF2', status: 'active', venue: 'Main Arena' },
-  { time: '17:30', event: 'Semi-Final: Winner QF3 vs Winner QF4', status: 'upcoming', venue: 'Main Arena' },
-  { time: '20:00', event: 'Grand Final', status: 'upcoming', venue: 'Main Arena' },
-]
-
-const copilotInsights = [
-  { type: 'warning', message: 'North Stand approaching 95% capacity. Recommend gate diversion to South entrance.', time: '2m ago', priority: 'high' },
-  { type: 'info', message: 'Concession sales up 23% vs. last match. Top seller: Premium Craft Beer.', time: '5m ago', priority: 'medium' },
-  { type: 'success', message: 'Parking Lot B optimal for next 500 vehicles. Auto-routing enabled.', time: '8m ago', priority: 'low' },
-  { type: 'alert', message: 'Weather alert: Light rain expected at 16:30. Retractable roof activation queued.', time: '12m ago', priority: 'medium' },
-]
-
-const recentActivities = [
-  { action: 'Gate C opened for overflow', by: 'AI Copilot', time: '1 min ago', icon: Megaphone },
-  { action: 'Emergency drill completed — Section 4', by: 'Security Team', time: '15 min ago', icon: Shield },
-  { action: 'VIP parking reassigned to Lot A-Premium', by: 'Parking Ops', time: '23 min ago', icon: Car },
-  { action: 'Halftime entertainment cue triggered', by: 'Events Coordinator', time: '30 min ago', icon: Radio },
-  { action: 'Food vendor restocking alert resolved', by: 'Concession Mgr', time: '42 min ago', icon: Flame },
-]
-
-const weatherData = {
+// Weather and 24h revenue/attendance trend charts have no backend data
+// source (no weather API or time-series analytics endpoint exists), so
+// these remain illustrative rather than live-wired.
+const weatherData: WeatherInput & {
+  forecast: Array<{ time: string; temp: number; icon: typeof Sun }>
+} = {
   temp: 28,
   condition: 'Partly Cloudy',
   humidity: 65,
@@ -101,28 +71,57 @@ const weatherData = {
 
 const chartData = [40, 55, 45, 70, 65, 80, 75, 90, 85, 95, 88, 92, 78, 85, 90, 87, 94, 91, 88, 93, 96, 89, 85, 82]
 
-function generateTournamentSchedule(seed: number): TournamentInput[] {
-  const teamRotations = [
-    ['Falcons', 'Titans', 'Warriors', 'Cyclones', 'Royals', 'Phoenix', 'Strikers', 'Comets'],
-    ['Royals', 'Falcons', 'Cyclones', 'Titans', 'Comets', 'Warriors', 'Phoenix', 'Strikers'],
-    ['Titans', 'Comets', 'Falcons', 'Phoenix', 'Warriors', 'Royals', 'Cyclones', 'Strikers'],
-  ]
-  const teams = teamRotations[seed % teamRotations.length]
+/* ============================================================
+   SHARED SECTION STATES
+   ============================================================ */
+function SectionLoading({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-2 py-6 text-sm text-text-muted">
+      <Loader2 className="size-4 animate-spin" />
+      {label}
+    </div>
+  )
+}
 
-  return [
-    { time: '09:00', event: 'Gates Open', status: 'completed', venue: 'All' },
-    { time: '10:30', event: `Quarter-Final: ${teams[0]} vs ${teams[1]}`, status: 'completed', venue: 'Court 1' },
-    { time: '10:30', event: `Quarter-Final: ${teams[2]} vs ${teams[3]}`, status: 'completed', venue: 'Court 2' },
-    { time: '14:00', event: `Semi-Final: ${teams[4]} vs ${teams[5]}`, status: 'active', venue: 'Main Arena' },
-    { time: '17:30', event: `Semi-Final: ${teams[6]} vs ${teams[7]}`, status: 'upcoming', venue: 'Main Arena' },
-    { time: '20:00', event: 'Grand Final', status: 'upcoming', venue: 'Main Arena' },
-  ]
+function SectionError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-error/25 bg-error/5 px-3.5 py-3 text-sm text-error">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="size-4 shrink-0" />
+        <span>{message}</span>
+      </div>
+      {onRetry && (
+        <button onClick={onRetry} className="shrink-0 text-xs font-medium underline hover:no-underline">
+          Retry
+        </button>
+      )}
+    </div>
+  )
+}
+
+function SectionEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+      <Inbox className="size-6 text-text-muted" />
+      <p className="text-sm text-text-muted">{message}</p>
+    </div>
+  )
 }
 
 /* ============================================================
    METRIC CARD COMPONENT
    ============================================================ */
-function MetricCard({ metric }: { metric: typeof executiveSummary[0] }) {
+interface ExecutiveMetric {
+  label: string
+  value: number
+  prefix: string
+  suffix: string
+  trend: number
+  icon: typeof Users
+  color: string
+}
+
+function MetricCard({ metric }: { metric: ExecutiveMetric }) {
   const displayVal = useCountUp(metric.value, { duration: 1200, decimals: metric.value % 1 !== 0 ? 1 : 0 })
 
   return (
@@ -138,13 +137,15 @@ function MetricCard({ metric }: { metric: typeof executiveSummary[0] }) {
         >
           <metric.icon className="size-5" style={{ color: metric.color }} />
         </div>
-        <div className={cn(
-          'flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5',
-          metric.trend >= 0 ? 'bg-success/15 text-success' : 'bg-error/15 text-error',
-        )}>
-          {metric.trend >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-          {metric.trend >= 0 ? '+' : ''}{metric.trend}%
-        </div>
+        {metric.trend !== 0 && (
+          <div className={cn(
+            'flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5',
+            metric.trend >= 0 ? 'bg-success/15 text-success' : 'bg-error/15 text-error',
+          )}>
+            {metric.trend >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+            {metric.trend >= 0 ? '+' : ''}{metric.trend}%
+          </div>
+        )}
       </div>
       <div className="text-2xl font-bold text-text-primary tabular-nums">
         {metric.prefix}{typeof displayVal === 'number' ? displayVal.toLocaleString() : displayVal}{metric.suffix}
@@ -201,6 +202,17 @@ function MiniChart({ data, color = '#6c63ff' }: { data: number[]; color?: string
    ============================================================ */
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+
+  const initials = user
+    ? user.fullName
+        .split(' ')
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : '—'
 
   return (
     <>
@@ -297,7 +309,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             collapsed && !isMobile ? 'justify-center' : '',
           )}>
             <div className="flex size-8 shrink-0 items-center justify-center rounded-full accent-gradient text-white text-xs font-semibold">
-              DS
+              {initials}
             </div>
             <AnimatePresence>
               {(!collapsed || isMobile) && (
@@ -307,13 +319,20 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
                   exit={{ opacity: 0, width: 0 }}
                   className="flex-1 overflow-hidden"
                 >
-                  <div className="text-sm font-medium text-text-primary truncate">Drashti Shah</div>
-                  <div className="text-xs text-text-muted truncate">Stadium Director</div>
+                  <div className="text-sm font-medium text-text-primary truncate">{user?.fullName ?? 'Guest'}</div>
+                  <div className="text-xs text-text-muted truncate">{user?.role ?? ''}</div>
                 </motion.div>
               )}
             </AnimatePresence>
             {(!collapsed || isMobile) && (
-              <button className="text-text-muted hover:text-text-primary transition-colors" aria-label="Logout">
+              <button
+                onClick={() => {
+                  logout()
+                  navigate('/login', { replace: true })
+                }}
+                className="text-text-muted hover:text-text-primary transition-colors"
+                aria-label="Logout"
+              >
                 <LogOut className="size-4" />
               </button>
             )}
@@ -377,7 +396,15 @@ function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 /* ============================================================
    CROWD ANALYTICS CARDS
    ============================================================ */
-function CrowdAnalyticsSection() {
+interface CrowdZoneDisplay {
+  zone: string
+  capacity: number
+  count: number
+  max: number
+  status: 'normal' | 'warning' | 'critical'
+}
+
+function CrowdAnalyticsSection({ zones }: { zones: CrowdZoneDisplay[] }) {
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
@@ -387,39 +414,43 @@ function CrowdAnalyticsSection() {
         </div>
         <Badge variant="live">LIVE</Badge>
       </div>
-      <div className="space-y-3">
-        {crowdAnalytics.map((zone) => (
-          <div key={zone.zone} className="space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-text-secondary">{zone.zone}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-text-muted tabular-nums text-xs">{zone.count.toLocaleString()}/{zone.max.toLocaleString()}</span>
-                <span className={cn(
-                  'text-xs font-semibold tabular-nums',
-                  zone.status === 'critical' && 'text-error',
-                  zone.status === 'warning' && 'text-warning',
-                  zone.status === 'normal' && 'text-success',
-                )}>
-                  {zone.capacity}%
-                </span>
+      {zones.length === 0 ? (
+        <SectionEmpty message="No crowd data recorded for this event yet." />
+      ) : (
+        <div className="space-y-3">
+          {zones.map((zone) => (
+            <div key={zone.zone} className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-secondary">{zone.zone}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-text-muted tabular-nums text-xs">{zone.count.toLocaleString()}/{zone.max.toLocaleString()}</span>
+                  <span className={cn(
+                    'text-xs font-semibold tabular-nums',
+                    zone.status === 'critical' && 'text-error',
+                    zone.status === 'warning' && 'text-warning',
+                    zone.status === 'normal' && 'text-success',
+                  )}>
+                    {zone.capacity}%
+                  </span>
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full bg-[var(--color-surface-hover)] overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${zone.capacity}%` }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                  className={cn(
+                    'h-full rounded-full',
+                    zone.status === 'critical' && 'bg-error',
+                    zone.status === 'warning' && 'bg-warning',
+                    zone.status === 'normal' && 'bg-success',
+                  )}
+                />
               </div>
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--color-surface-hover)] overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${zone.capacity}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className={cn(
-                  'h-full rounded-full',
-                  zone.status === 'critical' && 'bg-error',
-                  zone.status === 'warning' && 'bg-warning',
-                  zone.status === 'normal' && 'bg-success',
-                )}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -427,10 +458,10 @@ function CrowdAnalyticsSection() {
 /* ============================================================
    PARKING STATUS
    ============================================================ */
-function ParkingStatus() {
-  const totalOccupied = parkingData.reduce((s, p) => s + p.occupied, 0)
-  const totalCapacity = parkingData.reduce((s, p) => s + p.total, 0)
-  const overallPercent = Math.round((totalOccupied / totalCapacity) * 100)
+function ParkingStatus({ lots }: { lots: Array<{ lot: string; total: number; occupied: number; status: 'full' | 'warning' | 'available' }> }) {
+  const totalOccupied = lots.reduce((s, p) => s + p.occupied, 0)
+  const totalCapacity = lots.reduce((s, p) => s + p.total, 0)
+  const overallPercent = totalCapacity === 0 ? 0 : Math.round((totalOccupied / totalCapacity) * 100)
 
   return (
     <div className="glass-card rounded-2xl p-5">
@@ -444,20 +475,136 @@ function ParkingStatus() {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
-        {parkingData.map((lot) => {
-          const pct = Math.round((lot.occupied / lot.total) * 100)
-          return (
-            <div key={lot.lot} className="text-center">
-              <div className={cn(
-                'relative size-12 mx-auto rounded-xl flex items-center justify-center text-xs font-bold tabular-nums',
-                lot.status === 'full' && 'bg-error/15 text-error',
-                lot.status === 'warning' && 'bg-warning/15 text-warning',
-                lot.status === 'available' && 'bg-success/15 text-success',
-              )}>
-                {pct}%
+      {lots.length === 0 ? (
+        <SectionEmpty message="No parking data recorded for this event yet." />
+      ) : (
+        <div className="grid grid-cols-5 gap-2">
+          {lots.map((lot) => {
+            const pct = lot.total === 0 ? 0 : Math.round((lot.occupied / lot.total) * 100)
+            return (
+              <div key={lot.lot} className="text-center">
+                <div className={cn(
+                  'relative size-12 mx-auto rounded-xl flex items-center justify-center text-xs font-bold tabular-nums',
+                  lot.status === 'full' && 'bg-error/15 text-error',
+                  lot.status === 'warning' && 'bg-warning/15 text-warning',
+                  lot.status === 'available' && 'bg-success/15 text-success',
+                )}>
+                  {pct}%
+                </div>
+                <div className="mt-1.5 text-xs text-text-muted">{lot.lot}</div>
               </div>
-              <div className="mt-1.5 text-xs text-text-muted">{lot.lot}</div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   TOURNAMENT TIMELINE
+   ============================================================ */
+function TournamentTimelineWidget({ matches }: { matches: Array<{ time: string; event: string; status: 'completed' | 'active' | 'upcoming'; venue: string }> }) {
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-semibold text-text-primary">Tournament Timeline</h3>
+          <p className="text-xs text-text-muted mt-0.5">Live match schedule</p>
+        </div>
+        {matches.length > 0 && <Badge variant="copilot" className="text-xs">{matches.length} matches</Badge>}
+      </div>
+      {matches.length === 0 ? (
+        <SectionEmpty message="No matches scheduled yet." />
+      ) : (
+        <div className="space-y-3">
+          {matches.map((item, i) => (
+            <motion.div
+              key={`${item.time}-${item.event}`}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="flex items-start gap-3"
+            >
+              <div className="flex flex-col items-center shrink-0">
+                <div className={cn(
+                  'size-2.5 rounded-full ring-4',
+                  item.status === 'completed' && 'bg-success ring-success/20',
+                  item.status === 'active' && 'bg-accent ring-accent/20 animate-pulse',
+                  item.status === 'upcoming' && 'bg-[var(--color-border-default)] ring-[var(--color-border-default)]/20',
+                )} />
+                {i < matches.length - 1 && (
+                  <div className={cn(
+                    'w-px h-6 mt-1',
+                    item.status === 'completed' ? 'bg-success/30' : 'bg-[var(--color-border-default)]',
+                  )} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 -mt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn(
+                    'text-sm truncate',
+                    item.status === 'active' ? 'text-accent font-medium' : 'text-text-secondary',
+                    item.status === 'completed' && 'line-through text-text-muted',
+                  )}>
+                    {item.event}
+                  </span>
+                  <span className="text-xs text-text-muted tabular-nums shrink-0">{item.time}</span>
+                </div>
+                <div className="text-xs text-text-muted mt-0.5">{item.venue}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   EMERGENCY STATUS
+   ============================================================ */
+interface EmergencyStatusProps {
+  totalActive: number
+  activeReports: Array<{ type: EmergencyType }>
+}
+
+function EmergencyStatus({ totalActive, activeReports }: EmergencyStatusProps) {
+  const allClear = totalActive === 0
+  const typeCards: Array<{ label: string; type: 'medical' | 'fire' | 'security'; icon: typeof HeartPulse }> = [
+    { label: 'Medical', type: 'medical', icon: HeartPulse },
+    { label: 'Fire', type: 'fire', icon: Flame },
+    { label: 'Security', type: 'security', icon: Siren },
+  ]
+
+  return (
+    <div className={cn('glass-card rounded-2xl p-5', allClear ? 'border-success/20' : 'border-error/20')}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={cn('flex size-8 items-center justify-center rounded-lg', allClear ? 'bg-success/15' : 'bg-error/15')}>
+            <Shield className={cn('size-4', allClear ? 'text-success' : 'text-error')} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-text-primary text-sm">Emergency Status</h3>
+            <p className={cn('text-xs', allClear ? 'text-success' : 'text-error')}>
+              {allClear ? 'All Clear' : `${totalActive} Active`}
+            </p>
+          </div>
+        </div>
+        <div className={cn('flex size-10 items-center justify-center rounded-xl', allClear ? 'bg-success/10' : 'bg-error/10')}>
+          <span className={cn('text-lg font-bold', allClear ? 'text-success' : 'text-error')}>{allClear ? '✓' : totalActive}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {typeCards.map((item) => {
+          const isActive = activeReports.some((report) => report.type === item.type)
+          return (
+            <div key={item.label} className="text-center p-2 rounded-xl bg-[var(--color-surface-card)]">
+              <item.icon className={cn('size-4 mx-auto mb-1', isActive ? 'text-error' : 'text-success')} />
+              <div className="text-xs font-medium text-text-primary">{item.label}</div>
+              <div className={cn('text-[10px]', isActive ? 'text-error' : 'text-success')}>
+                {isActive ? 'Active' : 'Clear'}
+              </div>
             </div>
           )
         })}
@@ -467,102 +614,15 @@ function ParkingStatus() {
 }
 
 /* ============================================================
-   TOURNAMENT TIMELINE
-   ============================================================ */
-function TournamentTimelineWidget() {
-  return (
-    <div className="glass-card rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-semibold text-text-primary">Tournament Timeline</h3>
-          <p className="text-xs text-text-muted mt-0.5">National Championship 2026</p>
-        </div>
-        <Badge variant="copilot" className="text-xs">Day 3 of 5</Badge>
-      </div>
-      <div className="space-y-3">
-        {tournamentTimeline.map((item, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="flex items-start gap-3"
-          >
-            <div className="flex flex-col items-center shrink-0">
-              <div className={cn(
-                'size-2.5 rounded-full ring-4',
-                item.status === 'completed' && 'bg-success ring-success/20',
-                item.status === 'active' && 'bg-accent ring-accent/20 animate-pulse',
-                item.status === 'upcoming' && 'bg-[var(--color-border-default)] ring-[var(--color-border-default)]/20',
-              )} />
-              {i < tournamentTimeline.length - 1 && (
-                <div className={cn(
-                  'w-px h-6 mt-1',
-                  item.status === 'completed' ? 'bg-success/30' : 'bg-[var(--color-border-default)]',
-                )} />
-              )}
-            </div>
-            <div className="flex-1 min-w-0 -mt-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className={cn(
-                  'text-sm truncate',
-                  item.status === 'active' ? 'text-accent font-medium' : 'text-text-secondary',
-                  item.status === 'completed' && 'line-through text-text-muted',
-                )}>
-                  {item.event}
-                </span>
-                <span className="text-xs text-text-muted tabular-nums shrink-0">{item.time}</span>
-              </div>
-              <div className="text-xs text-text-muted mt-0.5">{item.venue}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ============================================================
-   EMERGENCY STATUS
-   ============================================================ */
-function EmergencyStatus() {
-  return (
-    <div className="glass-card rounded-2xl p-5 border-success/20">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-success/15">
-            <Shield className="size-4 text-success" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-text-primary text-sm">Emergency Status</h3>
-            <p className="text-xs text-success">All Clear</p>
-          </div>
-        </div>
-        <div className="flex size-10 items-center justify-center rounded-xl bg-success/10">
-          <span className="text-lg font-bold text-success">✓</span>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Medical', icon: HeartPulse, status: 'Standby', color: 'text-success' },
-          { label: 'Fire', icon: Flame, status: 'Clear', color: 'text-success' },
-          { label: 'Security', icon: Siren, status: 'Active', color: 'text-info' },
-        ].map((item) => (
-          <div key={item.label} className="text-center p-2 rounded-xl bg-[var(--color-surface-card)]">
-            <item.icon className={cn('size-4 mx-auto mb-1', item.color)} />
-            <div className="text-xs font-medium text-text-primary">{item.label}</div>
-            <div className={cn('text-[10px]', item.color)}>{item.status}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ============================================================
    COPILOT INSIGHTS PANEL
    ============================================================ */
-function CopilotInsightsPanel() {
+interface CopilotInsight {
+  type: 'warning' | 'info' | 'success' | 'alert'
+  message: string
+  priority: 'high' | 'medium' | 'low'
+}
+
+function CopilotInsightsPanel({ insights }: { insights: CopilotInsight[] }) {
   return (
     <div className="glass-card rounded-2xl p-5 border-[var(--color-copilot-border)]/30">
       <div className="flex items-center justify-between mb-4">
@@ -572,39 +632,45 @@ function CopilotInsightsPanel() {
           </div>
           <div>
             <h3 className="font-semibold text-text-primary text-sm">AI Copilot Insights</h3>
-            <p className="text-xs text-text-muted">4 new recommendations</p>
+            <p className="text-xs text-text-muted">{insights.length} live recommendations</p>
           </div>
         </div>
         <Button variant="copilot" size="sm" className="text-xs h-7 px-2.5">Ask AI</Button>
       </div>
-      <div className="space-y-2.5">
-        {copilotInsights.map((insight, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className={cn(
-              'rounded-xl p-3 text-sm border',
-              insight.type === 'warning' && 'bg-warning/5 border-warning/20',
-              insight.type === 'info' && 'bg-info/5 border-info/20',
-              insight.type === 'success' && 'bg-success/5 border-success/20',
-              insight.type === 'alert' && 'bg-error/5 border-error/20',
-            )}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-text-secondary leading-relaxed">{insight.message}</p>
-              <span className="text-[10px] text-text-muted whitespace-nowrap shrink-0">{insight.time}</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {insights.length === 0 ? (
+        <SectionEmpty message="Insights appear once crowd, parking, and tournament data are live." />
+      ) : (
+        <div className="space-y-2.5">
+          {insights.map((insight, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className={cn(
+                'rounded-xl p-3 text-sm border',
+                insight.type === 'warning' && 'bg-warning/5 border-warning/20',
+                insight.type === 'info' && 'bg-info/5 border-info/20',
+                insight.type === 'success' && 'bg-success/5 border-success/20',
+                insight.type === 'alert' && 'bg-error/5 border-error/20',
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-text-secondary leading-relaxed">{insight.message}</p>
+                <Badge variant={insight.priority === 'high' ? 'error' : insight.priority === 'medium' ? 'warning' : 'default'} className="text-[9px] shrink-0">
+                  {insight.priority}
+                </Badge>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 /* ============================================================
-   WEATHER WIDGET
+   WEATHER WIDGET (static — no backend weather source)
    ============================================================ */
 function WeatherWidget() {
   return (
@@ -646,42 +712,52 @@ function WeatherWidget() {
 /* ============================================================
    RECENT ACTIVITIES
    ============================================================ */
-function RecentActivities() {
+interface ActivityItem {
+  action: string
+  by: string
+  time: string
+  icon: typeof Shield
+}
+
+function RecentActivities({ activities }: { activities: ActivityItem[] }) {
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-text-primary text-sm">Recent Activity</h3>
-        <button className="text-xs text-accent hover:underline">View all</button>
       </div>
-      <div className="space-y-3">
-        {recentActivities.map((activity, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.08 }}
-            className="flex items-start gap-3"
-          >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-card)]">
-              <activity.icon className="size-4 text-text-muted" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-text-secondary truncate">{activity.action}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] text-text-muted">{activity.by}</span>
-                <span className="text-[10px] text-text-muted">·</span>
-                <span className="text-[10px] text-text-muted">{activity.time}</span>
+      {activities.length === 0 ? (
+        <SectionEmpty message="No recent activity for this event yet." />
+      ) : (
+        <div className="space-y-3">
+          {activities.map((activity, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.08 }}
+              className="flex items-start gap-3"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-card)]">
+                <activity.icon className="size-4 text-text-muted" />
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-secondary truncate">{activity.action}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-text-muted">{activity.by}</span>
+                  <span className="text-[10px] text-text-muted">·</span>
+                  <span className="text-[10px] text-text-muted">{activity.time}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 /* ============================================================
-   REVENUE CHART
+   REVENUE CHART (static illustrative trend — no time-series backend)
    ============================================================ */
 function RevenueChart() {
   return (
@@ -689,13 +765,7 @@ function RevenueChart() {
       <div className="flex items-center justify-between mb-1">
         <div>
           <h3 className="font-semibold text-text-primary text-sm">Revenue Trend</h3>
-          <p className="text-xs text-text-muted mt-0.5">Last 24 hours</p>
-        </div>
-        <div className="text-right">
-          <div className="text-lg font-bold text-text-primary tabular-nums">$284.5K</div>
-          <div className="flex items-center gap-1 text-xs text-success">
-            <TrendingUp className="size-3" /> +8.3%
-          </div>
+          <p className="text-xs text-text-muted mt-0.5">Illustrative — last 24 hours</p>
         </div>
       </div>
       <MiniChart data={chartData} color="#6c63ff" />
@@ -704,7 +774,7 @@ function RevenueChart() {
 }
 
 /* ============================================================
-   ATTENDANCE CHART
+   ATTENDANCE CHART (static illustrative trend — no time-series backend)
    ============================================================ */
 function AttendanceChart() {
   const bars = [35, 55, 45, 70, 85, 90, 78, 92, 88, 95, 80, 75]
@@ -715,9 +785,9 @@ function AttendanceChart() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-text-primary text-sm">Attendance Flow</h3>
-          <p className="text-xs text-text-muted mt-0.5">Hourly entry rate</p>
+          <p className="text-xs text-text-muted mt-0.5">Illustrative hourly entry rate</p>
         </div>
-        <Badge variant="default" className="text-xs">Today</Badge>
+        <Badge variant="default" className="text-xs">Sample</Badge>
       </div>
       <div className="flex items-end gap-1.5 h-28">
         {bars.map((h, i) => (
@@ -745,10 +815,97 @@ function AttendanceChart() {
 }
 
 /* ============================================================
+   EVENT SELECTOR
+   ============================================================ */
+function EventSelector({
+  events,
+  selectedEventId,
+  onSelect,
+  onCreate,
+  creating,
+  createError,
+}: {
+  events: Array<{ id: string; name: string }>
+  selectedEventId: string | null
+  onSelect: (id: string) => void
+  onCreate: (input: { name: string; venue: string; capacity: number; startDate: string; endDate: string }) => Promise<void>
+  creating: boolean
+  createError: string | null
+}) {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ name: '', venue: '', capacity: '', startDate: '', endDate: '' })
+
+  const handleCreate = async () => {
+    await onCreate({
+      name: form.name,
+      venue: form.venue,
+      capacity: Number(form.capacity) || 0,
+      startDate: form.startDate,
+      endDate: form.endDate,
+    })
+    setOpen(false)
+    setForm({ name: '', venue: '', capacity: '', startDate: '', endDate: '' })
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {events.length > 0 && (
+        <select
+          value={selectedEventId ?? ''}
+          onChange={(e) => onSelect(e.target.value)}
+          className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
+        >
+          {events.map((event) => (
+            <option key={event.id} value={event.id}>{event.name}</option>
+          ))}
+        </select>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setOpen(true)}>
+          <Plus className="size-3.5" /> New Event
+        </Button>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Event</DialogTitle>
+            <DialogDescription>Set up an event to start tracking live operations.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Event name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+            <Input placeholder="Venue" value={form.venue} onChange={(e) => setForm((p) => ({ ...p, venue: e.target.value }))} />
+            <Input type="number" min={0} placeholder="Capacity" value={form.capacity} onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input type="datetime-local" value={form.startDate} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} />
+              <Input type="datetime-local" value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} />
+            </div>
+            {createError && (
+              <div className="flex items-center gap-2 text-sm text-error">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleCreate}
+              loading={creating}
+              disabled={!form.name || !form.venue || !form.capacity || !form.startDate || !form.endDate}
+            >
+              Create Event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+/* ============================================================
    DASHBOARD PAGE
    ============================================================ */
 export function DashboardPage() {
   const isMobile = useIsMobile()
+  const { user } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile)
   const [seatInput, setSeatInput] = useState<SeatRecommendationInput>({
     budget: 'premium',
@@ -758,8 +915,100 @@ export function DashboardPage() {
     coveredSeating: true,
   })
   const [emergencyType, setEmergencyType] = useState<EmergencyType>('medical')
-  const [tournamentSeed, setTournamentSeed] = useState(0)
-  const tournamentSchedule = generateTournamentSchedule(tournamentSeed)
+
+  const {
+    events,
+    selectedEventId,
+    selectEvent,
+    loading: eventsLoading,
+    error: eventsError,
+    creating,
+    createError,
+    createEvent,
+    refetch: refetchEvents,
+  } = useMyEvents()
+
+  const {
+    summary,
+    crowd,
+    parking,
+    tournamentSchedule,
+    loading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary,
+  } = useEventOperationalData(selectedEventId)
+
+  useEffect(() => {
+    document.title = 'Command Center · ATHLIX'
+  }, [])
+
+  const executiveSummary: ExecutiveMetric[] = useMemo(() => {
+    const attendance = crowd.reduce((sum, zone) => sum + zone.count, 0)
+    const revenue = (summary?.seating.topRecommendations ?? []).reduce(
+      (sum, rec) => sum + rec.pricePerSeat * rec.groupSize,
+      0,
+    )
+    const avgWait = parking.length === 0
+      ? 0
+      : Math.round((parking.reduce((sum, lot) => sum + lot.walkingMinutes, 0) / parking.length) * 10) / 10
+    const safetyScore = summary
+      ? Math.max(0, Math.min(100, 100 - summary.emergency.totalActive * 8 - summary.emergency.breachedSlaCount * 12))
+      : 100
+
+    return [
+      { label: 'Live Attendance', value: attendance, prefix: '', suffix: '', trend: 0, icon: Users, color: '#6c63ff' },
+      { label: 'Seat Revenue (Est.)', value: revenue, prefix: '$', suffix: '', trend: 0, icon: BarChart3, color: '#3b82f6' },
+      { label: 'Avg. Walking Time', value: avgWait, prefix: '', suffix: 'min', trend: 0, icon: Clock, color: '#10b981' },
+      { label: 'Safety Score', value: safetyScore, prefix: '', suffix: '%', trend: 0, icon: Shield, color: '#f59e0b' },
+    ]
+  }, [crowd, parking, summary])
+
+  const recentActivities: ActivityItem[] = useMemo(() => {
+    if (!summary) return []
+
+    const fromEmergencies: Array<ActivityItem & { at: number }> = summary.emergency.activeReports.map((report) => ({
+      action: `${report.type.replace('-', ' ')} emergency reported${report.description ? `: ${report.description}` : ''}`,
+      by: 'Emergency Report',
+      time: new Date(report.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      icon: AlertTriangle,
+      at: new Date(report.createdAt).getTime(),
+    }))
+
+    const fromChat: Array<ActivityItem & { at: number }> = summary.engagement.recentMessages.map((message: ChatMessage) => ({
+      action: message.message.length > 80 ? `${message.message.slice(0, 80)}…` : message.message,
+      by: message.role === 'assistant' ? 'AI Copilot' : 'Attendee',
+      time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      icon: MessageCircle,
+      at: new Date(message.createdAt).getTime(),
+    }))
+
+    return [...fromEmergencies, ...fromChat]
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 6)
+      .map(({ at: _at, ...item }) => item)
+  }, [summary])
+
+  const operationsReady = crowd.length > 0 && parking.length > 0 && tournamentSchedule.length > 0
+
+  const copilotInsights: CopilotInsight[] = useMemo(() => {
+    if (!operationsReady) return []
+
+    const intel = derivePlatformIntel({
+      crowd,
+      parking,
+      tournament: tournamentSchedule,
+      weather: weatherData,
+      emergencyType,
+    })
+
+    return intel.systemEvents.map((event) => ({
+      type: event.severity === 'critical' ? 'alert' : event.severity === 'warning' ? 'warning' : 'info',
+      message: event.summary,
+      priority: event.severity === 'critical' ? 'high' : event.severity === 'warning' ? 'medium' : 'low',
+    }))
+  }, [operationsReady, crowd, parking, tournamentSchedule, emergencyType])
+
+  const activeEmergencyReports = summary?.emergency.activeReports ?? []
 
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -782,73 +1031,125 @@ export function DashboardPage() {
           >
             <div>
               <h1 className="text-2xl font-bold text-text-primary tracking-tight">Command Center</h1>
-              <p className="text-sm text-text-muted mt-0.5">Welcome back, Drashti. Here's your stadium overview.</p>
+              <p className="text-sm text-text-muted mt-0.5">
+                Welcome back{user ? `, ${user.fullName.split(' ')[0]}` : ''}. Here's your event overview.
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+              <EventSelector
+                events={events}
+                selectedEventId={selectedEventId}
+                onSelect={selectEvent}
+                onCreate={createEvent}
+                creating={creating}
+                createError={createError}
+              />
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={refetchSummary}>
                 <RefreshCw className="size-3.5" /> Refresh
               </Button>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" disabled>
                 <CalendarDays className="size-3.5" /> Today
                 <ChevronDown className="size-3" />
               </Button>
             </div>
           </motion.div>
 
-          {/* Executive Summary Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {executiveSummary.map((metric) => (
-              <MetricCard key={metric.label} metric={metric} />
-            ))}
-          </div>
+          {eventsLoading && <SectionLoading label="Loading your events…" />}
 
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Column 1 */}
-            <div className="space-y-4">
-              <CrowdAnalyticsSection />
-              <EmergencyStatus />
+          {!eventsLoading && eventsError && (
+            <SectionError message={eventsError} onRetry={refetchEvents} />
+          )}
+
+          {!eventsLoading && !eventsError && events.length === 0 && (
+            <div className="glass-card rounded-2xl p-10 flex flex-col items-center text-center gap-3">
+              <Inbox className="size-8 text-text-muted" />
+              <h3 className="font-semibold text-text-primary">No events yet</h3>
+              <p className="text-sm text-text-muted max-w-sm">
+                Create your first event to start tracking crowd, parking, tournament, and emergency operations live.
+              </p>
+              <EventSelector
+                events={events}
+                selectedEventId={selectedEventId}
+                onSelect={selectEvent}
+                onCreate={createEvent}
+                creating={creating}
+                createError={createError}
+              />
             </div>
+          )}
 
-            {/* Column 2 */}
-            <div className="space-y-4">
-              <RevenueChart />
-              <AttendanceChart />
-              <ParkingStatus />
-            </div>
+          {!eventsLoading && !eventsError && events.length > 0 && (
+            <>
+              {summaryError && <SectionError message={summaryError} onRetry={refetchSummary} />}
 
-            {/* Column 3 */}
-            <div className="space-y-4">
-              <CopilotInsightsPanel />
-              <TournamentTimelineWidget />
-            </div>
-          </div>
+              {summaryLoading && <SectionLoading label="Loading operational data…" />}
 
-          {/* Bottom Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <RecentActivities />
-            </div>
-            <WeatherWidget />
-          </div>
+              {!summaryLoading && !summaryError && (
+                <>
+                  {/* Executive Summary Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {executiveSummary.map((metric) => (
+                      <MetricCard key={metric.label} metric={metric} />
+                    ))}
+                  </div>
 
-          <OperationsModules
-            crowd={crowdAnalytics}
-            parking={[
-              { ...parkingData[0], walkingMinutes: 4, gate: 'Gate A', trafficLevel: 'High' },
-              { ...parkingData[1], walkingMinutes: 6, gate: 'Gate B', trafficLevel: 'Low' },
-              { ...parkingData[2], walkingMinutes: 5, gate: 'Gate D', trafficLevel: 'Moderate' },
-              { ...parkingData[3], walkingMinutes: 8, gate: 'Gate E', trafficLevel: 'Low' },
-              { ...parkingData[4], walkingMinutes: 3, gate: 'VIP Gate', trafficLevel: 'Moderate' },
-            ]}
-            tournament={tournamentSchedule}
-            weather={weatherData}
-            seatInput={seatInput}
-            onSeatInputChange={setSeatInput}
-            emergencyType={emergencyType}
-            onEmergencyTypeChange={setEmergencyType}
-            onRegenerateTournament={() => setTournamentSeed((seed) => seed + 1)}
-          />
+                  {/* Bento Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Column 1 */}
+                    <div className="space-y-4">
+                      <CrowdAnalyticsSection zones={crowd} />
+                      <EmergencyStatus
+                        totalActive={summary?.emergency.totalActive ?? 0}
+                        activeReports={activeEmergencyReports}
+                      />
+                    </div>
+
+                    {/* Column 2 */}
+                    <div className="space-y-4">
+                      <RevenueChart />
+                      <AttendanceChart />
+                      <ParkingStatus lots={parking} />
+                    </div>
+
+                    {/* Column 3 */}
+                    <div className="space-y-4">
+                      <CopilotInsightsPanel insights={copilotInsights} />
+                      <TournamentTimelineWidget matches={tournamentSchedule} />
+                    </div>
+                  </div>
+
+                  {/* Bottom Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2">
+                      <RecentActivities activities={recentActivities} />
+                    </div>
+                    <WeatherWidget />
+                  </div>
+
+                  {operationsReady ? (
+                    <OperationsModules
+                      crowd={crowd}
+                      parking={parking}
+                      tournament={tournamentSchedule}
+                      weather={weatherData}
+                      seatInput={seatInput}
+                      onSeatInputChange={setSeatInput}
+                      emergencyType={emergencyType}
+                      onEmergencyTypeChange={setEmergencyType}
+                      onRegenerateTournament={refetchSummary}
+                    />
+                  ) : (
+                    <div className="glass-card rounded-3xl p-10 flex flex-col items-center text-center gap-2">
+                      <Inbox className="size-6 text-text-muted" />
+                      <p className="text-sm text-text-muted">
+                        Operations modules unlock once this event has crowd, parking, and tournament records.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
         </main>
       </motion.div>
     </div>
