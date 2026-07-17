@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   deleteEmergencyReport,
+  getDemoEmergencyAiRecommendation,
+  getEmergencyAiRecommendation,
   getEmergencyReportById,
   getEventEmergencySummary,
   listActiveEmergencies,
@@ -11,6 +13,7 @@ import {
 import { authorize, protect } from "../middlewares/auth.middleware";
 import { validate } from "../middlewares/validate";
 import {
+  demoEmergencyAiRecommendationSchema,
   reportEmergencySchema,
   updateEmergencyStatusSchema,
 } from "../validations/emergency.validation";
@@ -25,7 +28,21 @@ router.get("/event/:eventId", listEmergencyReportsByEvent);
 router.get("/event/:eventId/active", listActiveEmergencies);
 router.get("/event/:eventId/summary", getEventEmergencySummary);
 
+// Registered before "/:id" so "demo" is never captured as an :id param.
+router.post(
+  "/demo/ai-recommendation",
+  authorize("Admin", "Organizer"),
+  validate(demoEmergencyAiRecommendationSchema),
+  getDemoEmergencyAiRecommendation
+);
+
 router.get("/:id", getEmergencyReportById);
+
+router.post(
+  "/:id/ai-recommendation",
+  authorize("Admin", "Organizer"),
+  getEmergencyAiRecommendation
+);
 
 router.patch(
   "/:id/status",

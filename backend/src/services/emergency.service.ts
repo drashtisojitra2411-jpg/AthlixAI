@@ -6,6 +6,12 @@ import {
   type EmergencyType,
   type IEmergencyReport,
 } from "../models/EmergencyReport.model";
+import {
+  askGeminiEmergencyPlan,
+  type EmergencyAiRecommendation,
+  type RiskLevel,
+} from "./gemini";
+import { getEventCrowdSummary } from "./crowdPrediction.service";
 import { paginate, type PaginatedResult, type PaginationOptions } from "./utils/pagination";
 import {
   assertEventExists,
@@ -155,6 +161,9 @@ export const getEventEmergencySummary = async (
     fire: 0,
     "lost-child": 0,
     security: 0,
+    "crowd-surge": 0,
+    "gate-blockage": 0,
+    "weather-alert": 0,
   };
 
   let totalActive = 0;
@@ -192,4 +201,86 @@ export const getEventEmergencySummary = async (
 export const deleteEmergencyReport = async (id: string): Promise<void> => {
   const report = await getEmergencyReportById(id);
   await report.deleteOne();
+};
+
+/* ============================================================
+ * Emergency Command Center — AI response recommendations.
+ *
+ * Pure addition below this line; nothing above is modified. Reuses the
+ * existing Gemini backend (askGeminiEmergencyPlan) the same way
+ * dashboard.service.ts reuses getEventEmergencySummary.
+ * ============================================================ */
+
+const SEVERITY_TO_RISK_LEVEL: Record<EmergencySeverity, RiskLevel> = {
+  low: "Low",
+  medium: "Moderate",
+  high: "High",
+  critical: "Critical",
+};
+
+export const getEmergencyAiRecommendation = async (
+  id: string
+): Promise<EmergencyAiRecommendation> => {
+  const report = await getEmergencyReportById(id);
+  const event = await assertEventExists(report.event.toString());
+  const crowd = await getEventCrowdSummary(report.event.toString());
+  const sla = calculateSlaInfo(report);
+
+  const attendance = crowd.zones.reduce((sum, zone) => sum + zone.currentCount, 0);
+
+  return askGeminiEmergencyPlan({
+    incidentType: report.type,
+    status: report.status,
+    reportedSeverity: SEVERITY_TO_RISK_LEVEL[report.severity],
+    location: report.location ?? "Unknown",
+    description: report.description ?? "No description provided",
+    minutesElapsed: sla.minutesElapsed,
+    slaMinutes: sla.slaMinutes,
+    isSlaBreached: sla.isBreached,
+    eventName: event.name,
+    attendance,
+    crowdPercentage: crowd.averageCapacity,
+    weather: "Unavailable",
+  });
+};
+
+export interface DemoEmergencyScenario {
+  eventId: string;
+  type: EmergencyType;
+  severity: EmergencySeverity;
+  location?: string;
+  description?: string;
+}
+
+/**
+ * Presentation Mode ("Emergency" demo stage) — generates a real AI
+ * recommendation for a scripted, non-persisted incident. Unlike
+ * getEmergencyAiRecommendation, this never reads or writes an
+ * EmergencyReport document: the incident fields come straight from the
+ * request body. The event/crowd context is still real (read-only) so the
+ * recommendation reads as grounded in the same data the rest of the demo
+ * shows, but nothing about the scenario itself touches the database.
+ */
+export const getDemoEmergencyAiRecommendation = async (
+  scenario: DemoEmergencyScenario
+): Promise<EmergencyAiRecommendation> => {
+  const event = await assertEventExists(scenario.eventId);
+  const crowd = await getEventCrowdSummary(scenario.eventId);
+  const slaMinutes = EMERGENCY.SEVERITY_SLA_MINUTES[scenario.severity];
+  const attendance = crowd.zones.reduce((sum, zone) => sum + zone.currentCount, 0);
+
+  return askGeminiEmergencyPlan({
+    incidentType: scenario.type,
+    status: "reported",
+    reportedSeverity: SEVERITY_TO_RISK_LEVEL[scenario.severity],
+    location: scenario.location ?? "Unknown",
+    description: scenario.description ?? "No description provided",
+    minutesElapsed: 0,
+    slaMinutes,
+    isSlaBreached: false,
+    eventName: event.name,
+    attendance,
+    crowdPercentage: crowd.averageCapacity,
+    weather: "Unavailable",
+  });
 };

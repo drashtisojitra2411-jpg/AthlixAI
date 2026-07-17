@@ -6,6 +6,8 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { CopilotPage } from '@/pages/CopilotPage'
 import { HeatmapPage } from '@/pages/HeatmapPage'
 import { PredictiveOperationsPage } from '@/pages/PredictiveOperationsPage'
+import { EmergencyCommandCenterPage } from '@/pages/EmergencyCommandCenterPage'
+import { PresentationModePage } from '@/pages/PresentationModePage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 function App() {
@@ -43,6 +45,22 @@ function App() {
         element={
           <ProtectedRoute>
             <PredictiveOperationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/emergency"
+        element={
+          <ProtectedRoute>
+            <EmergencyCommandCenterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/demo"
+        element={
+          <ProtectedRoute>
+            <PresentationModePage />
           </ProtectedRoute>
         }
       />

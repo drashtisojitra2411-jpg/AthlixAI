@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, CloudSun, Clock, Shield,
   Ticket, MapPin, RefreshCw, Sun, Moon, Droplets, Wind,
   CalendarDays, Flame, HeartPulse, Siren, MessageCircle,
-  PanelLeftClose, PanelLeft, AlertCircle, Inbox, Plus, Loader2,
+  PanelLeftClose, PanelLeft, AlertCircle, Inbox, Plus, Loader2, MonitorPlay,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -279,7 +279,13 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
                   : 'text-text-muted hover:text-text-primary hover:bg-[var(--color-surface-hover)]',
               )}
               title={collapsed && !isMobile ? item.label : undefined}
-              onClick={item.label === 'Crowd Analytics' ? () => navigate('/dashboard/heatmap') : undefined}
+              onClick={
+                item.label === 'Crowd Analytics'
+                  ? () => navigate('/dashboard/heatmap')
+                  : item.label === 'Emergency'
+                    ? () => navigate('/dashboard/emergency')
+                    : undefined
+              }
             >
               <item.icon className="size-5 shrink-0" />
               <AnimatePresence>
@@ -389,6 +395,15 @@ function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           onClick={() => navigate('/dashboard/copilot')}
         >
           <Sparkles className="size-3.5" /> AI Copilot
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden sm:inline-flex gap-1.5"
+          onClick={() => navigate('/dashboard/demo')}
+        >
+          <MonitorPlay className="size-3.5" /> Presentation Mode
         </Button>
 
         <button className="relative flex size-9 items-center justify-center rounded-xl hover:bg-[var(--color-surface-hover)] text-text-muted transition-colors" aria-label="Notifications">
@@ -573,7 +588,7 @@ function TournamentTimelineWidget({ matches }: { matches: Array<{ time: string; 
    ============================================================ */
 interface EmergencyStatusProps {
   totalActive: number
-  activeReports: Array<{ type: EmergencyType }>
+  activeReports: Array<{ type: string }>
 }
 
 function EmergencyStatus({ totalActive, activeReports }: EmergencyStatusProps) {

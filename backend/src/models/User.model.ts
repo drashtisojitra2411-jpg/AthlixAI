@@ -38,7 +38,13 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: ["Admin", "Organizer", "Visitor"],
-      default: "Visitor",
+      // Self-registration has no role picker and no admin-approval flow, so
+      // "Visitor" as a default silently locked every new signup out of event
+      // creation and every AI feature (all require Admin/Organizer) — direct
+      // contradiction of the register page's own "Full access, no credit
+      // card needed" copy. Organizer (not Admin) keeps cross-tenant listing
+      // endpoints restricted while unlocking a new user's own event/AI use.
+      default: "Organizer",
     },
     avatar: {
       type: String,

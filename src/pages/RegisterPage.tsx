@@ -256,8 +256,8 @@ export function RegisterPage() {
                 {/* Password strength */}
                 {formData.password.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     className="mt-3 space-y-2"
                   >
                     <div className="flex gap-1">

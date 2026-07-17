@@ -1,6 +1,13 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
 
-export type EmergencyType = "medical" | "fire" | "lost-child" | "security";
+export type EmergencyType =
+  | "medical"
+  | "fire"
+  | "lost-child"
+  | "security"
+  | "crowd-surge"
+  | "gate-blockage"
+  | "weather-alert";
 export type EmergencyStatus =
   | "reported"
   | "dispatched"
@@ -35,7 +42,15 @@ const emergencyReportSchema = new Schema<IEmergencyReport>(
     },
     type: {
       type: String,
-      enum: ["medical", "fire", "lost-child", "security"],
+      enum: [
+        "medical",
+        "fire",
+        "lost-child",
+        "security",
+        "crowd-surge",
+        "gate-blockage",
+        "weather-alert",
+      ],
       required: [true, "Emergency type is required"],
     },
     description: {

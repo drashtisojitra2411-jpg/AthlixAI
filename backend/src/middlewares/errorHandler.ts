@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 import { Error as MongooseError } from "mongoose";
-import { isProduction } from "../config/env";
 import { ApiError } from "../utils/ApiError";
 
 export const notFound = (req: Request, res: Response): void => {
@@ -23,9 +22,10 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  if (!isProduction) {
-    console.error(err);
-  }
+  // Always log server-side, in every environment — an error that isn't an
+  // ApiError falls through to the generic response below, which no longer
+  // includes err.message, so this is the only remaining record of it.
+  console.error(err);
 
   if (err instanceof ApiError) {
     res.status(err.statusCode).json({
@@ -54,8 +54,11 @@ export const errorHandler = (
     return;
   }
 
+  // Never forward an unrecognized error's raw message to the client — it
+  // can contain internal implementation details (driver/library internals,
+  // file paths, connection info). It's already logged above for debugging.
   res.status(500).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message: "Internal Server Error",
   });
 };

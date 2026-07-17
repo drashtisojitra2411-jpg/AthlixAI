@@ -86,3 +86,25 @@ export const deleteEmergencyReport = asyncHandler(
     sendSuccess(res, 200, "Emergency report deleted successfully");
   }
 );
+
+export const getEmergencyAiRecommendation = asyncHandler(
+  async (req: Request, res: Response) => {
+    const recommendation = await emergencyService.getEmergencyAiRecommendation(
+      req.params.id
+    );
+    sendSuccess(res, 200, "Emergency AI recommendation generated successfully", {
+      recommendation,
+    });
+  }
+);
+
+export const getDemoEmergencyAiRecommendation = asyncHandler(
+  async (req: Request, res: Response) => {
+    const recommendation = await emergencyService.getDemoEmergencyAiRecommendation(
+      req.body
+    );
+    sendSuccess(res, 200, "Demo emergency AI recommendation generated successfully", {
+      recommendation,
+    });
+  }
+);
