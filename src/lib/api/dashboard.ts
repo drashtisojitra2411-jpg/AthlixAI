@@ -65,6 +65,7 @@ export interface TournamentSummary {
 
 export interface SeatRecommendationSummary {
   _id: string
+  budget: 'value' | 'premium' | 'elite'
   recommendedSection: string
   pricePerSeat: number
   fitScore: number
@@ -90,6 +91,22 @@ export interface EventOperationalSummary {
     startDate: string
     endDate: string
     capacity: number
+    attendance: number
+    weather: string | null
+    totalSeats: number
+    seatsBooked: number
+    seatsAvailable: number
+    occupancyPercentage: number
+    averageTicketPrice: number
+    ticketRevenue: number
+    expectedRevenue: number
+    parkingCapacity: number
+    parkingOccupied: number
+    foodOrders: number
+    merchandiseSales: number
+    entryGatesOpen: number
+    securityPersonnel: number
+    medicalPersonnel: number
     organizer: string
   }
   crowd: EventCrowdSummary
@@ -112,4 +129,41 @@ export function getEventOperationalSummary(
   eventId: string,
 ): Promise<{ summary: EventOperationalSummary }> {
   return apiRequest<{ summary: EventOperationalSummary }>(`/dashboard/event/${eventId}`)
+}
+
+/* ============================================================
+ * Visitor-safe event summary — pure addition below this line.
+ * Nothing above is modified. A deliberately narrower shape than
+ * EventOperationalSummary (no revenue, no security/medical counts, no
+ * incident detail) — mirrors backend/src/services/dashboard.service.ts's
+ * getVisitorEventSummary, which is built independently of the sensitive
+ * summary above rather than derived by filtering it.
+ * ============================================================ */
+
+export interface VisitorEventSummary {
+  event: {
+    id: string
+    name: string
+    status: EventStatus
+    venue: string
+    location: string | null
+    startDate: string
+    endDate: string
+    weather: string | null
+    attendance: number
+    capacity: number
+  }
+  crowd: EventCrowdSummary
+  parking: EventParkingSummary
+  foodCourt: {
+    ordersToday: number
+    demandLevel: 'Low' | 'Moderate' | 'High'
+  }
+  generatedAt: string
+}
+
+export function getVisitorEventSummary(
+  eventId: string,
+): Promise<{ summary: VisitorEventSummary }> {
+  return apiRequest<{ summary: VisitorEventSummary }>(`/dashboard/event/${eventId}/visitor-summary`)
 }

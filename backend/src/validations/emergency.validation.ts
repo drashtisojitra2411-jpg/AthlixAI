@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { objectIdSchema } from "./common.validation";
 
+// reportedBy is intentionally not client-settable — the controller always
+// sets it from the authenticated caller (req.user.id), so a report can
+// never be attributed to another user.
 export const reportEmergencySchema = z.object({
   event: objectIdSchema,
-  reportedBy: objectIdSchema.optional(),
   type: z.enum([
     "medical",
     "fire",

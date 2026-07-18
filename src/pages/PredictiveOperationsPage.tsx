@@ -9,6 +9,7 @@ import { useEventOperationalData } from '@/hooks/useEventOperationalData'
 import { useStadiumRegions } from '@/hooks/useStadiumRegions'
 import { StadiumMap } from '@/components/heatmap/StadiumMap'
 import { StatusLegend } from '@/components/heatmap/StatusLegend'
+import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
 import { ControlPanel } from '@/components/predictive/ControlPanel'
 import { PredictionResultCard } from '@/components/predictive/PredictionResultCard'
 import { PredictionTimelineCard } from '@/components/predictive/PredictionTimelineCard'
@@ -93,6 +94,8 @@ export function PredictiveOperationsPage() {
   const [prediction, setPrediction] = useState<PredictionResult | null>(null)
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const {
     events,
@@ -104,6 +107,12 @@ export function PredictiveOperationsPage() {
 
   const { summary, crowd, parking, loading: summaryLoading, error: summaryError } = useEventOperationalData(selectedEventId)
   const regions = useStadiumRegions(crowd, parking, summary?.generatedAt ?? null)
+  const selectedRegion = regions.find((region) => region.id === selectedRegionId) ?? null
+
+  const handleSelectRegion = (id: string) => {
+    setSelectedRegionId(id)
+    setDrawerOpen(true)
+  }
 
   useEffect(() => {
     document.title = 'Predictive Operations · ATHLIX'
@@ -221,7 +230,7 @@ export function PredictiveOperationsPage() {
                     <Loader2 className="size-4 animate-spin" /> Loading live occupancy…
                   </div>
                 ) : (
-                  <StadiumMap regions={regions} onSelectRegion={() => {}} overlay={overlay} />
+                  <StadiumMap regions={regions} onSelectRegion={handleSelectRegion} overlay={overlay} />
                 )}
               </div>
 
@@ -238,6 +247,8 @@ export function PredictiveOperationsPage() {
           </div>
         )}
       </main>
+
+      <RegionDetailsDrawer region={selectedRegion} open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   )
 }

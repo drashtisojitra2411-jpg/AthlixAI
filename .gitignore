@@ -13,10 +13,11 @@ dist-ssr
 *.local
 .env
 backend/.env
+build
+coverage
+.vite
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo

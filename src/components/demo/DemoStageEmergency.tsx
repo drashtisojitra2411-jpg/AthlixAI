@@ -12,6 +12,7 @@ interface DemoStageEmergencyProps {
   regions: StadiumRegionData[]
   congestionRegion: DemoCongestionRegion
   eventId: string | null
+  onSelectRegion: (id: string) => void
 }
 
 function buildDemoIncident(
@@ -34,7 +35,7 @@ function buildDemoIncident(
   }
 }
 
-export function DemoStageEmergency({ regions, congestionRegion, eventId }: DemoStageEmergencyProps) {
+export function DemoStageEmergency({ regions, congestionRegion, eventId, onSelectRegion }: DemoStageEmergencyProps) {
   const [status, setStatus] = useState<EmergencyStatus>('reported')
   const incident = useMemo(
     () => buildDemoIncident(congestionRegion, eventId, status),
@@ -55,7 +56,7 @@ export function DemoStageEmergency({ regions, congestionRegion, eventId }: DemoS
           <h2 className="font-semibold text-text-primary">Live Stadium Heatmap</h2>
           <Badge variant="error">INCIDENT</Badge>
         </div>
-        <StadiumMap regions={regions} onSelectRegion={() => {}} overlay={overlay} />
+        <StadiumMap regions={regions} onSelectRegion={onSelectRegion} overlay={overlay} />
       </div>
 
       <div className="glass-card rounded-3xl p-4 sm:p-6">

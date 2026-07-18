@@ -22,3 +22,12 @@ export const getPlatformOverview = asyncHandler(
     });
   }
 );
+
+export const getVisitorEventSummary = asyncHandler(
+  async (req: Request, res: Response) => {
+    const summary = await dashboardService.getVisitorEventSummary(
+      req.params.eventId
+    );
+    sendSuccess(res, 200, "Event summary fetched successfully", { summary });
+  }
+);

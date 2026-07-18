@@ -18,6 +18,10 @@ export const PARKING = {
   TRAFFIC_MODERATE_MAX_OCCUPANCY: 75,
 };
 
+// Shared by SeatRecommendation.budget and Booking.ticketCategory so the two
+// features can never drift into two different tier lists.
+export const SEAT_BUDGET_TIERS = ["value", "premium", "elite"] as const;
+
 export const SEAT_RECOMMENDATION = {
   BASE_PRICE_PER_SEAT: {
     value: 40,
@@ -67,4 +71,17 @@ export const DASHBOARD = {
   RECENT_EMERGENCY_LIMIT: 5,
   RECENT_CHAT_LIMIT: 10,
   TOP_SEAT_RECOMMENDATION_LIMIT: 5,
+};
+
+// Food Court Status (visitor-facing) is derived from real foodOrders/attendance
+// data, not fabricated — these are just the thresholds for the qualitative label.
+export const FOOD_COURT_DEMAND = {
+  HIGH_DEMAND_RATIO: 0.3,
+  MODERATE_DEMAND_RATIO: 0.15,
+};
+
+export const BOOKING = {
+  MIN_QUANTITY: 1,
+  MAX_QUANTITY: 10,
+  BOOKABLE_EVENT_STATUSES: ["Upcoming", "Live"] as const,
 };

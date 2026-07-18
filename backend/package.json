@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "tsx --test src/services/parking.service.test.ts src/services/emergency.service.test.ts",
+    "migrate:event-fields": "tsx scripts/migrate-event-fields.ts",
+    "migrate:event-business-metrics": "tsx scripts/migrate-event-business-metrics.ts",
+    "seed:ipl-final-demo": "tsx scripts/seed-ipl-final-demo.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

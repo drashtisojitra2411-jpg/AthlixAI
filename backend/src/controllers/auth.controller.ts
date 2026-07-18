@@ -6,14 +6,14 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { generateToken } from "../utils/jwt";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { fullName, email, password, avatar } = req.body;
+  const { fullName, email, password, avatar, role } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(409, "An account with this email already exists");
   }
 
-  const user = await User.create({ fullName, email, password, avatar });
+  const user = await User.create({ fullName, email, password, avatar, role });
 
   const token = generateToken({ id: user.id, role: user.role });
 

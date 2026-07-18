@@ -8,6 +8,7 @@ interface DemoStageOverviewProps {
   summary: EventOperationalSummary | null
   regions: StadiumRegionData[]
   loading: boolean
+  onSelectRegion: (id: string) => void
 }
 
 function StatTile({ label, value }: { label: string; value: string }) {
@@ -19,7 +20,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function DemoStageOverview({ summary, regions, loading }: DemoStageOverviewProps) {
+export function DemoStageOverview({ summary, regions, loading, onSelectRegion }: DemoStageOverviewProps) {
   const attendance = summary?.crowd.zones.reduce((sum, zone) => sum + zone.currentCount, 0) ?? 0
 
   return (
@@ -39,7 +40,7 @@ export function DemoStageOverview({ summary, regions, loading }: DemoStageOvervi
             <Loader2 className="size-4 animate-spin" /> Loading live occupancy…
           </div>
         ) : (
-          <StadiumMap regions={regions} onSelectRegion={() => {}} />
+          <StadiumMap regions={regions} onSelectRegion={onSelectRegion} />
         )}
       </div>
     </div>

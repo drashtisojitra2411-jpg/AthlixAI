@@ -33,6 +33,11 @@ export const listEvents = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, 200, "Events fetched successfully", result);
 });
 
+export const listLiveEvents = asyncHandler(async (_req: Request, res: Response) => {
+  const result = await eventService.listEvents({ status: "Live" }, { limit: 5 });
+  sendSuccess(res, 200, "Live events fetched successfully", result);
+});
+
 export const listMyEvents = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new ApiError(401, "Not authorized");
@@ -52,4 +57,31 @@ export const updateEvent = asyncHandler(async (req: Request, res: Response) => {
 export const deleteEvent = asyncHandler(async (req: Request, res: Response) => {
   await eventService.deleteEvent(req.params.id);
   sendSuccess(res, 200, "Event deleted successfully");
+});
+
+const parseDateQuery = (value: unknown): Date | undefined => {
+  const raw = parseQueryString(value);
+  if (!raw) return undefined;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    throw new ApiError(400, "Invalid date query parameter");
+  }
+  return date;
+};
+
+export const listBrowseEvents = asyncHandler(async (req: Request, res: Response) => {
+  const result = await eventService.listBrowseEvents(
+    {
+      stadiumId: parseQueryString(req.query.stadiumId),
+      from: parseDateQuery(req.query.from),
+      to: parseDateQuery(req.query.to),
+    },
+    parsePagination(req)
+  );
+  sendSuccess(res, 200, "Events fetched successfully", result);
+});
+
+export const getBrowseEventById = asyncHandler(async (req: Request, res: Response) => {
+  const event = await eventService.getBrowseEventById(req.params.id);
+  sendSuccess(res, 200, "Event fetched successfully", { event });
 });

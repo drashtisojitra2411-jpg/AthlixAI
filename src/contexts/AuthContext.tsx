@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import * as authApi from '@/lib/api/auth'
-import type { AuthUser } from '@/lib/api/auth'
+import type { AuthUser, UserRole } from '@/lib/api/auth'
 import {
   ApiRequestError,
   clearStoredToken,
@@ -15,8 +15,8 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
-  login: (email: string, password: string) => Promise<void>
-  register: (fullName: string, email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<AuthUser>
+  register: (fullName: string, email: string, password: string, role?: UserRole) => Promise<AuthUser>
   logout: () => void
   clearError: () => void
 }
@@ -57,18 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user: loggedInUser, token } = await authApi.login(email, password)
       setStoredToken(token)
       setUser(loggedInUser)
+      return loggedInUser
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Unable to sign in')
       throw err
     }
   }, [])
 
-  const register = useCallback(async (fullName: string, email: string, password: string) => {
+  const register = useCallback(async (fullName: string, email: string, password: string, role?: UserRole) => {
     setError(null)
     try {
-      const { user: registeredUser, token } = await authApi.register(fullName, email, password)
+      const { user: registeredUser, token } = await authApi.register(fullName, email, password, role)
       setStoredToken(token)
       setUser(registeredUser)
+      return registeredUser
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Unable to create account')
       throw err

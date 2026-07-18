@@ -1,4 +1,4 @@
-import { DASHBOARD, EMERGENCY } from "../config/constants";
+import { DASHBOARD, EMERGENCY, FOOD_COURT_DEMAND } from "../config/constants";
 import { ChatHistory, type IChatHistory } from "../models/ChatHistory.model";
 import { EmergencyReport } from "../models/EmergencyReport.model";
 import { Event, type EventStatus } from "../models/Event.model";
@@ -36,6 +36,22 @@ export interface EventOperationalSummary {
     startDate: Date;
     endDate: Date;
     capacity: number;
+    attendance: number;
+    weather: string | null;
+    totalSeats: number;
+    seatsBooked: number;
+    seatsAvailable: number;
+    occupancyPercentage: number;
+    averageTicketPrice: number;
+    ticketRevenue: number;
+    expectedRevenue: number;
+    parkingCapacity: number;
+    parkingOccupied: number;
+    foodOrders: number;
+    merchandiseSales: number;
+    entryGatesOpen: number;
+    securityPersonnel: number;
+    medicalPersonnel: number;
     organizer: string;
   };
   crowd: EventCrowdSummary;
@@ -71,7 +87,7 @@ interface SeatFitScoreAggregation {
 
 const EVENT_STATUSES: EventStatus[] = [
   "Upcoming",
-  "Active",
+  "Live",
   "Completed",
   "Cancelled",
 ];
@@ -128,6 +144,22 @@ export const getEventOperationalSummary = async (
       startDate: event.startDate,
       endDate: event.endDate,
       capacity: event.capacity,
+      attendance: event.attendance,
+      weather: event.weather ?? null,
+      totalSeats: event.totalSeats,
+      seatsBooked: event.seatsBooked,
+      seatsAvailable: event.seatsAvailable,
+      occupancyPercentage: event.occupancyPercentage,
+      averageTicketPrice: event.averageTicketPrice,
+      ticketRevenue: event.ticketRevenue,
+      expectedRevenue: event.expectedRevenue,
+      parkingCapacity: event.parkingCapacity,
+      parkingOccupied: event.parkingOccupied,
+      foodOrders: event.foodOrders,
+      merchandiseSales: event.merchandiseSales,
+      entryGatesOpen: event.entryGatesOpen,
+      securityPersonnel: event.securityPersonnel,
+      medicalPersonnel: event.medicalPersonnel,
       organizer: event.organizer.toString(),
     },
     crowd,
@@ -191,6 +223,82 @@ export const getPlatformOverview = async (): Promise<PlatformOverview> => {
     totalUsers,
     usersByRole,
     totalActiveEmergenciesAcrossEvents,
+    generatedAt: new Date(),
+  };
+};
+
+/* ============================================================
+ * Visitor-safe event summary — pure addition below this line.
+ * Nothing above is modified. Built directly from the same low-level
+ * services getEventOperationalSummary composes (getEventCrowdSummary,
+ * getEventParkingSummary) — deliberately NOT derived by filtering
+ * getEventOperationalSummary's output, so the sensitive object (revenue,
+ * security/medical counts, incident detail) is never constructed on a
+ * code path a visitor can reach.
+ * ============================================================ */
+
+export interface VisitorEventSummary {
+  event: {
+    id: string;
+    name: string;
+    status: EventStatus;
+    venue: string;
+    location: string | null;
+    startDate: Date;
+    endDate: Date;
+    weather: string | null;
+    attendance: number;
+    capacity: number;
+  };
+  crowd: EventCrowdSummary;
+  parking: EventParkingSummary;
+  foodCourt: {
+    ordersToday: number;
+    demandLevel: "Low" | "Moderate" | "High";
+  };
+  generatedAt: Date;
+}
+
+const deriveFoodCourtDemand = (
+  foodOrders: number,
+  attendance: number
+): "Low" | "Moderate" | "High" => {
+  if (attendance <= 0) return "Low";
+  const ratio = foodOrders / attendance;
+  if (ratio >= FOOD_COURT_DEMAND.HIGH_DEMAND_RATIO) return "High";
+  if (ratio >= FOOD_COURT_DEMAND.MODERATE_DEMAND_RATIO) return "Moderate";
+  return "Low";
+};
+
+export const getVisitorEventSummary = async (
+  eventId: string
+): Promise<VisitorEventSummary> => {
+  const event = await assertEventExists(eventId);
+
+  const [crowd, parking] = await Promise.all([
+    getEventCrowdSummary(eventId),
+    getEventParkingSummary(eventId),
+  ]);
+
+  return {
+    event: {
+      id: event.id,
+      name: event.name,
+      status: event.status,
+      venue: event.venue,
+      location: event.location ?? null,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      weather: event.weather ?? null,
+      attendance: event.attendance,
+      capacity: event.capacity,
+    },
+    crowd,
+    parking,
+    foodCourt: {
+      ordersToday: event.foodOrders,
+      demandLevel: deriveFoodCourtDemand(event.foodOrders, event.attendance),
+    },
     generatedAt: new Date(),
   };
 };

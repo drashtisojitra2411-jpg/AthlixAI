@@ -22,9 +22,10 @@ interface DemoStagePredictionProps {
   eventId: string | null
   regions: StadiumRegionData[]
   congestionRegion: DemoCongestionRegion
+  onSelectRegion: (id: string) => void
 }
 
-export function DemoStagePrediction({ eventId, regions, congestionRegion }: DemoStagePredictionProps) {
+export function DemoStagePrediction({ eventId, regions, congestionRegion, onSelectRegion }: DemoStagePredictionProps) {
   const [prediction, setPrediction] = useState<PredictionResult | null>(null)
   const [usedFallback, setUsedFallback] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -89,7 +90,7 @@ export function DemoStagePrediction({ eventId, regions, congestionRegion }: Demo
             <Loader2 className="size-4 animate-spin" /> Simulating conditions for {congestionRegion.label}…
           </div>
         ) : (
-          <StadiumMap regions={regions} onSelectRegion={() => {}} overlay={overlay} />
+          <StadiumMap regions={regions} onSelectRegion={onSelectRegion} overlay={overlay} />
         )}
       </div>
 

@@ -11,6 +11,7 @@ import { IncidentDetailsPanel } from '@/components/emergency/IncidentDetailsPane
 import { IncidentList } from '@/components/emergency/IncidentList'
 import { ReportIncidentDialog } from '@/components/emergency/ReportIncidentDialog'
 import { StadiumMap } from '@/components/heatmap/StadiumMap'
+import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
 import { useAuth } from '@/contexts/AuthContext'
 import { useEmergencyIncidents } from '@/hooks/useEmergencyIncidents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
@@ -110,6 +111,8 @@ export function EmergencyCommandCenterPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [drawerRegionId, setDrawerRegionId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const {
     events,
@@ -163,6 +166,13 @@ export function EmergencyCommandCenterPage() {
           },
         }
       : undefined
+
+  const drawerRegion = regions.find((region) => region.id === drawerRegionId) ?? null
+
+  const handleSelectRegion = (id: string) => {
+    setDrawerRegionId(id)
+    setDrawerOpen(true)
+  }
 
   const handleSelectIncident = (id: string) => {
     setSelectedIncidentId(id)
@@ -274,7 +284,7 @@ export function EmergencyCommandCenterPage() {
                     <Loader2 className="size-4 animate-spin" /> Loading live occupancy…
                   </div>
                 ) : (
-                  <StadiumMap regions={regions} onSelectRegion={() => {}} overlay={overlay} />
+                  <StadiumMap regions={regions} onSelectRegion={handleSelectRegion} overlay={overlay} />
                 )}
               </div>
 
@@ -326,6 +336,8 @@ export function EmergencyCommandCenterPage() {
           </div>
         )}
       </main>
+
+      <RegionDetailsDrawer region={drawerRegion} open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   )
 }

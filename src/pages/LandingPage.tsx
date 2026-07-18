@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   Sparkles,
@@ -22,12 +22,14 @@ import {
   Wifi,
   MapPin,
   PlayCircle,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AuroraBackground } from '@/components/ambient/AuroraBackground'
-import { useState, type ComponentProps } from 'react'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
@@ -50,30 +52,6 @@ const scaleIn = {
     scale: 1,
     transition: { duration: 0.6, ease: EASE },
   },
-}
-
-function GitHubIcon(props: ComponentProps<'svg'>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.44 9.8 8.2 11.39.6.1.82-.26.82-.58 0-.28-.01-1.03-.01-2.02-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.72.08-.72 1.2.08 1.83 1.24 1.83 1.24 1.07 1.84 2.81 1.31 3.49 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.93 0-1.31.47-2.39 1.24-3.24-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0 1 12 6.09c1.02 0 2.05.14 3.01.41 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.85 1.24 1.93 1.24 3.24 0 4.6-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.22.69.83.57C20.57 21.79 24 17.31 24 12 24 5.37 18.63 0 12 0Z" />
-    </svg>
-  )
-}
-
-function XIcon(props: ComponentProps<'svg'>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M18.24 2H21l-6.03 6.9L22 22h-5.49l-4.3-5.62L7.3 22H4.54l6.45-7.38L2 2h5.63l3.89 5.12L18.24 2Zm-.97 18h1.53L6.8 3.9H5.16L17.27 20Z" />
-    </svg>
-  )
-}
-
-function LinkedInIcon(props: ComponentProps<'svg'>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM3 9h4v12H3zm7 0h3.83v1.64h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.09V21h-4v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.15 1.45-2.15 2.95V21h-4z" />
-    </svg>
-  )
 }
 
 /* ============================================================
@@ -167,7 +145,25 @@ function LandingNav() {
 /* ============================================================
    HERO SECTION
    ============================================================ */
+const heroCapabilities = [
+  { icon: Sparkles, label: 'AI Copilot' },
+  { icon: MapPin, label: 'Heatmap' },
+  { icon: Gauge, label: 'Predictive Operations' },
+  { icon: AlertTriangle, label: 'Emergency Command Center' },
+]
+
 function HeroSection() {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+
+  const handleWatchDemo = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard/demo')
+    } else {
+      navigate('/login', { state: { from: '/dashboard/demo' } })
+    }
+  }
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-20">
       <AuroraBackground />
@@ -219,19 +215,34 @@ function HeroSection() {
           Crowd flow, parking logistics, emergency response — all orchestrated by intelligence.
         </motion.p>
 
+        {/* Capability chips — what ATHLIX actually does, by name */}
         <motion.div
           variants={fadeUp}
           initial="hidden"
           animate="visible"
           custom={3}
-          className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+          className="mt-6 flex flex-wrap items-center justify-center gap-2"
+        >
+          {heroCapabilities.map((cap) => (
+            <Badge key={cap.label} variant="outline" className="gap-1.5 px-3 py-1.5">
+              <cap.icon className="size-3.5 text-accent" /> {cap.label}
+            </Badge>
+          ))}
+        </motion.div>
+
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={4}
+          className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
         >
           <Button size="lg" asChild className="text-base px-8">
             <Link to="/dashboard">
               Launch Command Center <ArrowRight className="size-5" />
             </Link>
           </Button>
-          <Button variant="secondary" size="lg" className="text-base px-8 gap-2">
+          <Button variant="secondary" size="lg" className="text-base px-8 gap-2" onClick={handleWatchDemo}>
             <PlayCircle className="size-5" /> Watch Demo
           </Button>
         </motion.div>
@@ -241,7 +252,7 @@ function HeroSection() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          custom={4}
+          custom={5}
           className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4"
         >
           {[
@@ -273,9 +284,32 @@ function HeroSection() {
 /* ============================================================
    LIVE DASHBOARD PREVIEW
    ============================================================ */
+const previewNav = [
+  { icon: LayoutDashboard, label: 'Overview' },
+  { icon: Sparkles, label: 'AI Copilot' },
+  { icon: MapPin, label: 'Heatmap' },
+  { icon: Gauge, label: 'Predictive Ops' },
+  { icon: AlertTriangle, label: 'Emergency' },
+]
+
+const previewStats = [
+  { label: 'Live Attendance', value: '95,240', color: '#6c63ff' },
+  { label: 'Occupancy', value: '95.24%', color: '#3b82f6' },
+  { label: 'Safety Score', value: '100%', color: '#10b981' },
+  { label: 'Ticket Revenue', value: '₹27.1Cr', color: '#f59e0b' },
+]
+
+const previewZones = [
+  { zone: 'General Bowl', pct: 100 },
+  { zone: 'North Stand', pct: 99 },
+  { zone: 'Grand Pavilion', pct: 98 },
+  { zone: 'Skyline Terrace', pct: 97 },
+  { zone: 'South Stand', pct: 95 },
+]
+
 function DashboardPreview() {
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section className="relative py-20 overflow-hidden">
       <div className="mx-auto max-w-6xl px-6">
         <motion.div
           variants={scaleIn}
@@ -298,67 +332,74 @@ function DashboardPreview() {
                 </div>
               </div>
             </div>
-            {/* Dashboard mock */}
-            <div className="p-6 grid grid-cols-12 gap-4 min-h-[400px]">
-              {/* Sidebar */}
-              <div className="hidden md:block col-span-2 space-y-3">
-                <div className="h-8 rounded-lg skeleton-shimmer" />
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className={cn('h-6 rounded-md', i === 0 ? 'bg-accent/20' : 'skeleton-shimmer')} style={{ width: `${70 + Math.random() * 30}%` }} />
+            {/* Dashboard mock — mirrors the real Command Center layout & data shape */}
+            <div className="p-4 sm:p-6 grid grid-cols-12 gap-4">
+              {/* Mini nav */}
+              <div className="hidden md:flex col-span-3 lg:col-span-2 flex-col gap-1">
+                {previewNav.map((item, i) => (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs',
+                      i === 0 ? 'bg-accent/15 text-accent font-medium' : 'text-text-muted',
+                    )}
+                  >
+                    <item.icon className="size-3.5 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </div>
                 ))}
               </div>
+
               {/* Main */}
-              <div className="col-span-12 md:col-span-10 space-y-4">
+              <div className="col-span-12 md:col-span-9 lg:col-span-10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-text-primary">IPL 2026 Final</div>
+                    <div className="text-xs text-text-muted">Narendra Modi Stadium</div>
+                  </div>
+                  <Badge variant="live">LIVE</Badge>
+                </div>
+
                 {/* Stats row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {['#6c63ff', '#3b82f6', '#10b981', '#f59e0b'].map((color, i) => (
-                    <div key={i} className="glass-card rounded-xl p-4">
-                      <div className="size-8 rounded-lg mb-2" style={{ background: `${color}20` }} />
-                      <div className="h-5 w-16 rounded skeleton-shimmer" />
-                      <div className="h-3 w-12 mt-1 rounded skeleton-shimmer" />
-                    </div>
+                  {previewStats.map((stat, i) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.08, duration: 0.4 }}
+                      className="glass-card rounded-xl p-3.5"
+                    >
+                      <div className="text-lg font-bold tabular-nums" style={{ color: stat.color }}>{stat.value}</div>
+                      <div className="mt-0.5 text-[11px] text-text-muted">{stat.label}</div>
+                    </motion.div>
                   ))}
                 </div>
-                {/* Charts */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="glass-card rounded-xl p-4 h-44">
-                    <div className="h-4 w-24 rounded skeleton-shimmer mb-4" />
-                    <div className="flex items-end gap-1.5 h-24">
-                      {[40, 65, 55, 80, 70, 90, 85, 95, 75, 60, 88, 92].map((h, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ height: 0 }}
-                          whileInView={{ height: `${h}%` }}
-                          viewport={{ once: true }}
-                          transition={{ delay: i * 0.05, duration: 0.5 }}
-                          className="flex-1 rounded-t"
-                          style={{ background: `linear-gradient(to top, #6c63ff, #3b82f6)`, opacity: 0.7 + (h / 100) * 0.3 }}
-                        />
-                      ))}
-                    </div>
+
+                {/* Crowd zones — heatmap preview */}
+                <div className="glass-card rounded-xl p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-medium text-text-secondary">Crowd Zones</span>
+                    <span className="text-[11px] text-text-muted">Live Occupancy</span>
                   </div>
-                  <div className="glass-card rounded-xl p-4 h-44">
-                    <div className="h-4 w-24 rounded skeleton-shimmer mb-4" />
-                    <div className="relative h-24 flex items-center justify-center">
-                      <svg viewBox="0 0 100 50" className="w-full h-full">
-                        <motion.path
-                          d="M 0 40 C 15 35, 25 20, 35 25 S 50 10, 65 15 S 80 30, 100 20"
-                          fill="none"
-                          stroke="url(#lineGrad)"
-                          strokeWidth="2"
-                          initial={{ pathLength: 0 }}
-                          whileInView={{ pathLength: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1.5, ease: 'easeOut' }}
-                        />
-                        <defs>
-                          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6c63ff" />
-                            <stop offset="100%" stopColor="#3b82f6" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </div>
+                  <div className="space-y-2.5">
+                    {previewZones.map((z, i) => (
+                      <div key={z.zone} className="flex items-center gap-3">
+                        <span className="w-24 sm:w-28 shrink-0 truncate text-[11px] text-text-muted">{z.zone}</span>
+                        <div className="h-1.5 flex-1 rounded-full bg-[var(--color-surface-hover)] overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${z.pct}%` }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.08, duration: 0.6, ease: 'easeOut' }}
+                            className="h-full rounded-full"
+                            style={{ background: z.pct >= 98 ? '#ef4444' : '#6c63ff' }}
+                          />
+                        </div>
+                        <span className="w-8 shrink-0 text-right text-[11px] tabular-nums text-text-muted">{z.pct}%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -798,8 +839,8 @@ function CTASection() {
                   Start Free Trial <ArrowRight className="size-5" />
                 </Link>
               </Button>
-              <Button variant="secondary" size="lg" className="text-base px-8">
-                Talk to Sales
+              <Button variant="secondary" size="lg" className="text-base px-8" asChild>
+                <a href="mailto:sales@athlix.ai">Talk to Sales</a>
               </Button>
             </div>
             <p className="mt-4 text-xs text-text-muted">No credit card required · 14-day free trial · Cancel anytime</p>
@@ -814,29 +855,18 @@ function CTASection() {
    FOOTER
    ============================================================ */
 function Footer() {
-  const columns = [
-    {
-      title: 'Product',
-      links: ['Features', 'Pricing', 'Integrations', 'Changelog', 'Roadmap'],
-    },
-    {
-      title: 'Solutions',
-      links: ['Stadiums', 'Arenas', 'Tournaments', 'Universities', 'Government'],
-    },
-    {
-      title: 'Resources',
-      links: ['Documentation', 'API Reference', 'Blog', 'Community', 'Status'],
-    },
-    {
-      title: 'Company',
-      links: ['About', 'Careers', 'Press', 'Contact', 'Legal'],
-    },
+  const exploreLinks = [
+    { label: 'Features', href: '#features' },
+    { label: 'AI', href: '#ai' },
+    { label: 'Stadium', href: '#stadium' },
+    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'FAQ', href: '#faq' },
   ]
 
   return (
     <footer className="border-t border-[var(--color-border-default)]">
       <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2.5 mb-4">
               <div className="flex size-9 items-center justify-center rounded-xl accent-gradient">
@@ -847,40 +877,35 @@ function Footer() {
             <p className="text-sm text-text-muted leading-relaxed max-w-xs">
               The AI copilot for intelligent stadium and tournament operations. Built for the future of sports.
             </p>
-            <div className="mt-6 flex gap-3">
-              {[GitHubIcon, XIcon, LinkedInIcon, Mail].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="flex size-9 items-center justify-center rounded-lg glass-card hover:bg-[var(--color-surface-hover)] transition-colors"
-                  aria-label="Social link"
-                >
-                  <Icon className="size-4 text-text-muted" />
-                </a>
-              ))}
-            </div>
+            <a
+              href="mailto:sales@athlix.ai"
+              className="mt-6 inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
+            >
+              <Mail className="size-4" /> sales@athlix.ai
+            </a>
           </div>
-          {columns.map((col) => (
-            <div key={col.title}>
-              <h4 className="text-sm font-semibold text-text-primary mb-4">{col.title}</h4>
-              <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link}>
-                    <a href="#" className="text-sm text-text-muted hover:text-text-primary transition-colors">{link}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <h4 className="text-sm font-semibold text-text-primary mb-4">Explore</h4>
+            <ul className="space-y-2.5">
+              {exploreLinks.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="text-sm text-text-muted hover:text-text-primary transition-colors">{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-text-primary mb-4">Account</h4>
+            <ul className="space-y-2.5">
+              <li><Link to="/login" className="text-sm text-text-muted hover:text-text-primary transition-colors">Sign In</Link></li>
+              <li><Link to="/register" className="text-sm text-text-muted hover:text-text-primary transition-colors">Get Started</Link></li>
+              <li><Link to="/dashboard" className="text-sm text-text-muted hover:text-text-primary transition-colors">Command Center</Link></li>
+            </ul>
+          </div>
         </div>
 
-        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-[var(--color-border-default)] pt-8 sm:flex-row">
+        <div className="mt-16 flex items-center justify-center border-t border-[var(--color-border-default)] pt-8">
           <p className="text-xs text-text-muted">© 2026 ATHLIX. All rights reserved.</p>
-          <div className="flex gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((link) => (
-              <a key={link} href="#" className="text-xs text-text-muted hover:text-text-primary transition-colors">{link}</a>
-            ))}
-          </div>
         </div>
       </div>
     </footer>

@@ -1,6 +1,14 @@
 import { ChatHistory } from "../models/ChatHistory.model";
-import { getEventOperationalSummary } from "./dashboard.service";
-import { askGemini, type CompactEventContext, type CopilotAskResult } from "./gemini";
+import { getEventOperationalSummary, getVisitorEventSummary } from "./dashboard.service";
+import { calculateSlaInfo } from "./emergency.service";
+import {
+  askGemini,
+  askGeminiVisitor,
+  type CompactEventContext,
+  type CopilotAskResult,
+  type VisitorAskResult,
+  type VisitorEventContext,
+} from "./gemini";
 
 export interface CopilotAskOutcome {
   context: CompactEventContext;
@@ -8,6 +16,7 @@ export interface CopilotAskOutcome {
 }
 
 const DEFAULT_WEATHER = "unavailable";
+const MAX_ACTIVE_INCIDENTS_IN_CONTEXT = 3;
 
 export const buildCompactContext = async (
   eventId: string,
@@ -23,15 +32,52 @@ export const buildCompactContext = async (
     (report) => report.type === "medical"
   ).length;
 
+  const activeIncidents = summary.emergency.activeReports
+    .slice(0, MAX_ACTIVE_INCIDENTS_IN_CONTEXT)
+    .map((report) => ({
+      type: report.type,
+      severity: report.severity,
+      location: report.location || "unspecified",
+      minutesElapsed: calculateSlaInfo(report).minutesElapsed,
+    }));
+
   return {
     eventName: summary.event.name,
+    eventStatus: summary.event.status,
     attendance,
+    capacity: summary.event.capacity,
     crowdPercentage: summary.crowd.averageCapacity,
-    parkingPercentage: summary.parking.overallOccupancyRate,
-    securityAlerts,
-    medicalAlerts,
     weather: weather?.trim() || DEFAULT_WEATHER,
     currentTime: new Date().toISOString(),
+    tickets: {
+      totalSeats: summary.event.totalSeats,
+      seatsBooked: summary.event.seatsBooked,
+      seatsAvailable: summary.event.seatsAvailable,
+      occupancyPercentage: summary.event.occupancyPercentage,
+      averageTicketPrice: summary.event.averageTicketPrice,
+    },
+    parking: {
+      capacity: summary.parking.totalSpaces,
+      occupied: summary.parking.totalOccupied,
+      occupancyPercentage: summary.parking.overallOccupancyRate,
+      lotsAvailable: summary.parking.statusBreakdown.available,
+      lotsWarning: summary.parking.statusBreakdown.warning,
+      lotsFull: summary.parking.statusBreakdown.full,
+    },
+    revenue: {
+      ticketRevenue: summary.event.ticketRevenue,
+      expectedRevenue: summary.event.expectedRevenue,
+      foodOrders: summary.event.foodOrders,
+      merchandiseSales: summary.event.merchandiseSales,
+    },
+    emergency: {
+      activeCount: summary.emergency.totalActive,
+      resolvedCount: summary.emergency.totalResolved,
+      securityAlerts,
+      medicalAlerts,
+      breachedSlaCount: summary.emergency.breachedSlaCount,
+      activeIncidents,
+    },
   };
 };
 
@@ -70,6 +116,54 @@ export const askCopilot = async (
       },
     },
   ]);
+
+  return { context, response };
+};
+
+/* ============================================================
+ * Visitor AI Assistant — pure addition below this line.
+ *
+ * Nothing above is modified. Deliberately built on getVisitorEventSummary
+ * (not getEventOperationalSummary) so revenue/security data never reaches
+ * this path. Also deliberately does NOT write to ChatHistory — that
+ * collection is read unfiltered-by-role for the Organizer dashboard's
+ * engagement widget (totalChatInteractions/recentMessages), and persisting
+ * visitor Q&A there would silently inflate Organizer-visible numbers.
+ * ============================================================ */
+
+export interface VisitorCopilotAskOutcome {
+  context: VisitorEventContext;
+  response: VisitorAskResult;
+}
+
+export const buildVisitorContext = async (eventId: string): Promise<VisitorEventContext> => {
+  const summary = await getVisitorEventSummary(eventId);
+
+  return {
+    eventName: summary.event.name,
+    eventStatus: summary.event.status,
+    venue: summary.event.venue,
+    startDate: summary.event.startDate.toISOString(),
+    endDate: summary.event.endDate.toISOString(),
+    weather: summary.event.weather ?? "unavailable",
+    crowdPercentage: summary.crowd.averageCapacity,
+    parking: {
+      occupancyPercentage: summary.parking.overallOccupancyRate,
+      recommendedLot: summary.parking.recommendedLot?.lot ?? null,
+      walkingMinutes: summary.parking.recommendedLot?.walkingMinutes ?? null,
+    },
+    foodCourt: {
+      demandLevel: summary.foodCourt.demandLevel,
+    },
+  };
+};
+
+export const askVisitorCopilot = async (
+  eventId: string,
+  prompt: string
+): Promise<VisitorCopilotAskOutcome> => {
+  const context = await buildVisitorContext(eventId);
+  const response = await askGeminiVisitor(prompt, context);
 
   return { context, response };
 };

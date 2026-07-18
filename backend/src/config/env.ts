@@ -14,3 +14,19 @@ export const env = {
 };
 
 export const isProduction = env.nodeEnv === "production";
+
+// JWT_SECRET and MONGODB_URI silently defaulting to "" would let the server
+// boot into a broken state — an empty JWT secret makes every token trivially
+// forgeable (jwt.sign/verify accept ""), and an empty Mongo URI fails with a
+// confusing driver error far from this file. Fail fast at startup instead.
+const REQUIRED_ENV_VARS: Array<[keyof typeof env, string]> = [
+  ["jwtSecret", "JWT_SECRET"],
+  ["mongodbUri", "MONGODB_URI"],
+];
+
+const missing = REQUIRED_ENV_VARS.filter(([key]) => !env[key]).map(([, name]) => name);
+if (missing.length > 0) {
+  throw new Error(
+    `Missing required environment variable(s): ${missing.join(", ")}. Set them in backend/.env before starting the server.`
+  );
+}

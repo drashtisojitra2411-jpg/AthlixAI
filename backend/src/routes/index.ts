@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authRoutes from "./auth.routes";
+import bookingRoutes from "./booking.routes";
 import copilotRoutes from "./copilot.routes";
 import crowdPredictionRoutes from "./crowdPrediction.routes";
 import dashboardRoutes from "./dashboard.routes";
@@ -9,6 +10,7 @@ import healthRoutes from "./health.routes";
 import parkingRoutes from "./parking.routes";
 import predictiveRoutes from "./predictive.routes";
 import seatRecommendationRoutes from "./seatRecommendation.routes";
+import stadiumRoutes from "./stadium.routes";
 import tournamentRoutes from "./tournament.routes";
 
 const router = Router();
@@ -24,5 +26,7 @@ router.use("/emergencies", emergencyRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/copilot", copilotRoutes);
 router.use("/predictive", predictiveRoutes);
+router.use("/stadiums", stadiumRoutes);
+router.use("/bookings", bookingRoutes);
 
 export default router;

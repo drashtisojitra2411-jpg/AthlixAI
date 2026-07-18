@@ -1,9 +1,18 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import type { UserRole } from '@/lib/api/auth'
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+const roleHome = (role: UserRole): string => (role === 'Visitor' ? '/visitor' : '/dashboard')
+
+export function ProtectedRoute({
+  children,
+  allowedRoles,
+}: {
+  children: ReactNode
+  allowedRoles?: UserRole[]
+}) {
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -13,8 +22,14 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Authenticated but in the wrong section (e.g. a Visitor hitting an
+  // Organizer-only URL) — send them to their own home, not /login.
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={roleHome(user.role)} replace />
   }
 
   return <>{children}</>

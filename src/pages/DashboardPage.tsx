@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, LayoutDashboard, Users, Car, Trophy, AlertTriangle, BarChart3,
-  Settings, Bell, Search, Sparkles, ChevronDown, Menu, LogOut,
+  Settings, Bell, Sparkles, Menu, LogOut,
   TrendingUp, TrendingDown, CloudSun, Clock, Shield,
   Ticket, MapPin, RefreshCw, Sun, Moon, Droplets, Wind,
-  CalendarDays, Flame, HeartPulse, Siren, MessageCircle,
+  Flame, HeartPulse, Siren, MessageCircle,
   PanelLeftClose, PanelLeft, AlertCircle, Inbox, Plus, Loader2, MonitorPlay,
+  Percent, Armchair, DollarSign, Target, UtensilsCrossed, ShoppingBag, DoorOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +34,10 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMyEvents } from '@/hooks/useMyEvents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
-import type { ChatMessage } from '@/lib/api/dashboard'
+import { useStadiums } from '@/hooks/useStadiums'
+import { createStadium } from '@/lib/api/stadiums'
+import { ApiRequestError } from '@/lib/api/client'
+import type { ChatMessage, EventOperationalSummary } from '@/lib/api/dashboard'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 
@@ -50,6 +54,15 @@ const sidebarItems = [
   { icon: Ticket, label: 'Ticketing' },
   { icon: Settings, label: 'Settings' },
 ]
+
+const SIDEBAR_ROUTES: Record<string, string> = {
+  'Crowd Analytics': '/dashboard/heatmap',
+  Parking: '/dashboard/parking',
+  Emergency: '/dashboard/emergency',
+  Revenue: '/dashboard/revenue',
+  Ticketing: '/dashboard/ticketing',
+  Settings: '/dashboard/settings',
+}
 
 // Weather and 24h revenue/attendance trend charts have no backend data
 // source (no weather API or time-series analytics endpoint exists), so
@@ -280,10 +293,10 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
               )}
               title={collapsed && !isMobile ? item.label : undefined}
               onClick={
-                item.label === 'Crowd Analytics'
-                  ? () => navigate('/dashboard/heatmap')
-                  : item.label === 'Emergency'
-                    ? () => navigate('/dashboard/emergency')
+                item.label === 'Tournament'
+                  ? () => document.getElementById('tournament-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  : SIDEBAR_ROUTES[item.label]
+                    ? () => navigate(SIDEBAR_ROUTES[item.label])
                     : undefined
               }
             >
@@ -353,7 +366,61 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 /* ============================================================
    NAVBAR
    ============================================================ */
-function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+function NotificationsMenu({ activities }: { activities: ActivityItem[] }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="relative flex size-9 items-center justify-center rounded-xl hover:bg-[var(--color-surface-hover)] text-text-muted transition-colors"
+        aria-label="Notifications"
+        aria-expanded={open}
+      >
+        <Bell className="size-5" />
+        {activities.length > 0 && (
+          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-error animate-pulse" />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="glass-card absolute right-0 top-11 z-50 w-80 rounded-2xl p-3"
+            >
+              <div className="px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">
+                Recent Activity
+              </div>
+              {activities.length === 0 ? (
+                <div className="px-2 py-4 text-sm text-text-muted">No recent activity for this event yet.</div>
+              ) : (
+                <div className="mt-1 max-h-80 space-y-1 overflow-y-auto">
+                  {activities.map((activity, i) => (
+                    <div key={i} className="flex items-start gap-2.5 rounded-xl px-2 py-2 hover:bg-[var(--color-surface-hover)]">
+                      <activity.icon className="mt-0.5 size-3.5 shrink-0 text-accent" />
+                      <div className="min-w-0">
+                        <div className="text-xs text-text-secondary leading-relaxed">{activity.action}</div>
+                        <div className="mt-0.5 text-[11px] text-text-muted">{activity.by} · {activity.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function Navbar({ onToggleSidebar, recentActivities }: { onToggleSidebar: () => void; recentActivities: ActivityItem[] }) {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
 
@@ -373,17 +440,7 @@ function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         </button>
       )}
 
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
-          <input
-            type="text"
-            placeholder="Search anything... ⌘K"
-            className="w-full h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] pl-9 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          />
-        </div>
-      </div>
+      <div className="flex-1" />
 
       <div className="flex items-center gap-2">
         <Badge variant="live" className="hidden sm:inline-flex">MATCH LIVE</Badge>
@@ -406,10 +463,7 @@ function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <MonitorPlay className="size-3.5" /> Presentation Mode
         </Button>
 
-        <button className="relative flex size-9 items-center justify-center rounded-xl hover:bg-[var(--color-surface-hover)] text-text-muted transition-colors" aria-label="Notifications">
-          <Bell className="size-5" />
-          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-error animate-pulse" />
-        </button>
+        <NotificationsMenu activities={recentActivities} />
       </div>
     </motion.header>
   )
@@ -524,11 +578,72 @@ function ParkingStatus({ lots }: { lots: Array<{ lot: string; total: number; occ
 }
 
 /* ============================================================
+   STADIUM BUSINESS METRICS
+   ============================================================ */
+interface BusinessMetricTile {
+  label: string
+  value: string
+  icon: typeof Users
+}
+
+function buildBusinessMetricTiles(event: EventOperationalSummary['event']): BusinessMetricTile[] {
+  return [
+    { label: 'Occupancy', value: `${event.occupancyPercentage}%`, icon: Percent },
+    { label: 'Seats Booked', value: `${event.seatsBooked.toLocaleString()} / ${event.totalSeats.toLocaleString()}`, icon: Ticket },
+    { label: 'Seats Available', value: event.seatsAvailable.toLocaleString(), icon: Armchair },
+    { label: 'Avg. Ticket Price', value: `₹${event.averageTicketPrice.toLocaleString()}`, icon: DollarSign },
+    { label: 'Ticket Revenue', value: `₹${event.ticketRevenue.toLocaleString()}`, icon: BarChart3 },
+    { label: 'Expected Revenue', value: `₹${event.expectedRevenue.toLocaleString()}`, icon: Target },
+    { label: 'Parking', value: `${event.parkingOccupied.toLocaleString()} / ${event.parkingCapacity.toLocaleString()}`, icon: Car },
+    { label: 'Food Orders', value: event.foodOrders.toLocaleString(), icon: UtensilsCrossed },
+    { label: 'Merchandise Sales', value: event.merchandiseSales.toLocaleString(), icon: ShoppingBag },
+    { label: 'Entry Gates Open', value: String(event.entryGatesOpen), icon: DoorOpen },
+    { label: 'Security Personnel', value: String(event.securityPersonnel), icon: Shield },
+    { label: 'Medical Personnel', value: String(event.medicalPersonnel), icon: HeartPulse },
+  ]
+}
+
+function BusinessMetricsPanel({ event }: { event: EventOperationalSummary['event'] | undefined }) {
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-semibold text-text-primary">Stadium Business Metrics</h3>
+          <p className="text-xs text-text-muted mt-0.5">Seating, revenue & operations</p>
+        </div>
+      </div>
+
+      {!event ? (
+        <SectionEmpty message="No business metrics recorded for this event yet." />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {buildBusinessMetricTiles(event).map((tile, i) => (
+            <motion.div
+              key={tile.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              className="rounded-2xl border border-[var(--color-border-default)] bg-[rgba(255,255,255,0.03)] p-3.5"
+            >
+              <div className="flex items-center gap-2 text-text-muted">
+                <tile.icon className="size-3.5" />
+                <span className="text-[11px] uppercase tracking-[0.14em]">{tile.label}</span>
+              </div>
+              <div className="mt-1.5 text-base font-semibold text-text-primary tabular-nums truncate">{tile.value}</div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
    TOURNAMENT TIMELINE
    ============================================================ */
 function TournamentTimelineWidget({ matches }: { matches: Array<{ time: string; event: string; status: 'completed' | 'active' | 'upcoming'; venue: string }> }) {
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <div id="tournament-section" className="glass-card rounded-2xl p-5 scroll-mt-20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-text-primary">Tournament Timeline</h3>
@@ -645,6 +760,8 @@ interface CopilotInsight {
 }
 
 function CopilotInsightsPanel({ insights }: { insights: CopilotInsight[] }) {
+  const navigate = useNavigate()
+
   return (
     <div className="glass-card rounded-2xl p-5 border-[var(--color-copilot-border)]/30">
       <div className="flex items-center justify-between mb-4">
@@ -657,7 +774,9 @@ function CopilotInsightsPanel({ insights }: { insights: CopilotInsight[] }) {
             <p className="text-xs text-text-muted">{insights.length} live recommendations</p>
           </div>
         </div>
-        <Button variant="copilot" size="sm" className="text-xs h-7 px-2.5">Ask AI</Button>
+        <Button variant="copilot" size="sm" className="text-xs h-7 px-2.5" onClick={() => navigate('/dashboard/copilot')}>
+          Ask AI
+        </Button>
       </div>
       {insights.length === 0 ? (
         <SectionEmpty message="Insights appear once crowd, parking, and tournament data are live." />
@@ -698,7 +817,10 @@ function WeatherWidget() {
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-text-primary text-sm">Weather</h3>
+        <div>
+          <h3 className="font-semibold text-text-primary text-sm">Weather</h3>
+          <p className="text-xs text-text-muted mt-0.5">Illustrative — no live weather source</p>
+        </div>
         <MapPin className="size-3.5 text-text-muted" />
       </div>
       <div className="flex items-center gap-4 mb-4">
@@ -850,23 +972,54 @@ function EventSelector({
   events: Array<{ id: string; name: string }>
   selectedEventId: string | null
   onSelect: (id: string) => void
-  onCreate: (input: { name: string; venue: string; capacity: number; startDate: string; endDate: string }) => Promise<void>
+  onCreate: (input: { name: string; venue: string; stadium?: string; capacity: number; startDate: string; endDate: string; attendance?: number; weather?: string; totalSeats?: number; averageTicketPrice?: number }) => Promise<void>
   creating: boolean
   createError: string | null
 }) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', venue: '', capacity: '', startDate: '', endDate: '' })
+  const [form, setForm] = useState({ name: '', venue: '', stadium: '', capacity: '', startDate: '', endDate: '', attendance: '', weather: '', totalSeats: '', averageTicketPrice: '' })
+  const [showNewStadium, setShowNewStadium] = useState(false)
+  const [newStadium, setNewStadium] = useState({ name: '', location: '', capacity: '' })
+  const [creatingStadium, setCreatingStadium] = useState(false)
+  const [stadiumError, setStadiumError] = useState<string | null>(null)
+
+  const { stadiums, refetch: refetchStadiums } = useStadiums()
 
   const handleCreate = async () => {
     await onCreate({
       name: form.name,
       venue: form.venue,
+      stadium: form.stadium || undefined,
       capacity: Number(form.capacity) || 0,
       startDate: form.startDate,
       endDate: form.endDate,
+      attendance: form.attendance ? Number(form.attendance) : undefined,
+      weather: form.weather || undefined,
+      totalSeats: form.totalSeats ? Number(form.totalSeats) : undefined,
+      averageTicketPrice: form.averageTicketPrice ? Number(form.averageTicketPrice) : undefined,
     })
     setOpen(false)
-    setForm({ name: '', venue: '', capacity: '', startDate: '', endDate: '' })
+    setForm({ name: '', venue: '', stadium: '', capacity: '', startDate: '', endDate: '', attendance: '', weather: '', totalSeats: '', averageTicketPrice: '' })
+  }
+
+  const handleCreateStadium = async () => {
+    setCreatingStadium(true)
+    setStadiumError(null)
+    try {
+      const { stadium } = await createStadium({
+        name: newStadium.name,
+        location: newStadium.location,
+        capacity: Number(newStadium.capacity) || 0,
+      })
+      await refetchStadiums()
+      setForm((p) => ({ ...p, stadium: stadium.id, venue: p.venue || stadium.name }))
+      setShowNewStadium(false)
+      setNewStadium({ name: '', location: '', capacity: '' })
+    } catch (err) {
+      setStadiumError(err instanceof ApiRequestError ? err.message : 'Failed to create stadium')
+    } finally {
+      setCreatingStadium(false)
+    }
   }
 
   return (
@@ -894,11 +1047,58 @@ function EventSelector({
           </DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Event name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+
+            <div className="flex items-center gap-2">
+              <select
+                value={form.stadium}
+                onChange={(e) => {
+                  const stadium = stadiums.find((s) => s.id === e.target.value)
+                  setForm((p) => ({ ...p, stadium: e.target.value, venue: stadium ? stadium.name : p.venue }))
+                }}
+                className="h-9 flex-1 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
+              >
+                <option value="">No stadium — enter venue manually</option>
+                {stadiums.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <Button type="button" variant="ghost" size="sm" className="gap-1 text-xs shrink-0" onClick={() => setShowNewStadium((v) => !v)}>
+                <Plus className="size-3.5" /> Stadium
+              </Button>
+            </div>
+
+            {showNewStadium && (
+              <div className="space-y-2 rounded-xl border border-[var(--color-border-default)] p-3">
+                <Input placeholder="Stadium name" value={newStadium.name} onChange={(e) => setNewStadium((p) => ({ ...p, name: e.target.value }))} />
+                <Input placeholder="Location" value={newStadium.location} onChange={(e) => setNewStadium((p) => ({ ...p, location: e.target.value }))} />
+                <Input type="number" min={0} placeholder="Capacity" value={newStadium.capacity} onChange={(e) => setNewStadium((p) => ({ ...p, capacity: e.target.value }))} />
+                {stadiumError && <p className="text-xs text-error">{stadiumError}</p>}
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={creatingStadium}
+                  disabled={!newStadium.name || !newStadium.location || !newStadium.capacity}
+                  onClick={handleCreateStadium}
+                >
+                  Create Stadium
+                </Button>
+              </div>
+            )}
+
             <Input placeholder="Venue" value={form.venue} onChange={(e) => setForm((p) => ({ ...p, venue: e.target.value }))} />
             <Input type="number" min={0} placeholder="Capacity" value={form.capacity} onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))} />
             <div className="grid grid-cols-2 gap-3">
               <Input type="datetime-local" value={form.startDate} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} />
               <Input type="datetime-local" value={form.endDate} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input type="number" min={0} placeholder="Total seats for booking" value={form.totalSeats} onChange={(e) => setForm((p) => ({ ...p, totalSeats: e.target.value }))} />
+              <Input type="number" min={0} placeholder="Avg. ticket price (₹)" value={form.averageTicketPrice} onChange={(e) => setForm((p) => ({ ...p, averageTicketPrice: e.target.value }))} />
+            </div>
+            <p className="text-xs text-text-muted -mt-1.5">Total seats and price determine what visitors can book — leave blank if this event isn't ticketed.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Input type="number" min={0} placeholder="Attendance (optional)" value={form.attendance} onChange={(e) => setForm((p) => ({ ...p, attendance: e.target.value }))} />
+              <Input placeholder="Weather (optional)" value={form.weather} onChange={(e) => setForm((p) => ({ ...p, weather: e.target.value }))} />
             </div>
             {createError && (
               <div className="flex items-center gap-2 text-sm text-error">
@@ -1042,7 +1242,7 @@ export function DashboardPage() {
         transition={{ duration: 0.3, ease: EASE }}
         className="min-h-screen flex flex-col"
       >
-        <Navbar onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <Navbar onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} recentActivities={recentActivities} />
 
         <main className="flex-1 p-4 sm:p-6 space-y-6">
           {/* Header */}
@@ -1068,10 +1268,6 @@ export function DashboardPage() {
               />
               <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={refetchSummary}>
                 <RefreshCw className="size-3.5" /> Refresh
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" disabled>
-                <CalendarDays className="size-3.5" /> Today
-                <ChevronDown className="size-3" />
               </Button>
             </div>
           </motion.div>
@@ -1114,6 +1310,9 @@ export function DashboardPage() {
                       <MetricCard key={metric.label} metric={metric} />
                     ))}
                   </div>
+
+                  {/* Stadium Business Metrics */}
+                  <BusinessMetricsPanel event={summary?.event} />
 
                   {/* Bento Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

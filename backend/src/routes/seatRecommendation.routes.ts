@@ -21,11 +21,16 @@ router.post(
   createSeatRecommendation
 );
 
-router.get("/user/:userId", listSeatRecommendationsByUser);
-router.get("/event/:eventId", listSeatRecommendationsByEvent);
-router.get("/event/:eventId/top", getTopRecommendationsForEvent);
+// GET /user/:userId lets the caller pass any userId — previously safe only
+// because Visitor was unreachable; now that ordinary self-registered
+// Visitors can authenticate, this must stay Admin/Organizer-only to avoid
+// letting one user list another user's seat recommendations (budget tier,
+// VIP/accessibility flags, price).
+router.get("/user/:userId", authorize("Admin", "Organizer"), listSeatRecommendationsByUser);
+router.get("/event/:eventId", authorize("Admin", "Organizer"), listSeatRecommendationsByEvent);
+router.get("/event/:eventId/top", authorize("Admin", "Organizer"), getTopRecommendationsForEvent);
 
-router.get("/:id", getSeatRecommendationById);
+router.get("/:id", authorize("Admin", "Organizer"), getSeatRecommendationById);
 
 router.delete(
   "/:id",

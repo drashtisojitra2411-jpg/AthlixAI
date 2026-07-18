@@ -28,10 +28,11 @@ export function register(
   fullName: string,
   email: string,
   password: string,
+  role?: UserRole,
 ): Promise<AuthPayload> {
   return apiRequest<AuthPayload>('/auth/register', {
     method: 'POST',
-    body: { fullName, email, password },
+    body: role ? { fullName, email, password, role } : { fullName, email, password },
   })
 }
 

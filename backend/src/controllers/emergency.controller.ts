@@ -6,12 +6,21 @@ import type {
 } from "../models/EmergencyReport.model";
 import * as emergencyService from "../services/emergency.service";
 import { sendSuccess } from "../utils/apiResponse";
+import { ApiError } from "../utils/ApiError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { parsePagination, parseQueryString } from "./utils/requestParsing";
 
 export const reportEmergency = asyncHandler(
   async (req: Request, res: Response) => {
-    const report = await emergencyService.reportEmergency(req.body);
+    if (!req.user) {
+      throw new ApiError(401, "Not authorized");
+    }
+    // reportedBy is always the authenticated caller — any client-supplied
+    // value is ignored so a report can never be attributed to another user.
+    const report = await emergencyService.reportEmergency({
+      ...req.body,
+      reportedBy: req.user.id,
+    });
     sendSuccess(res, 201, "Emergency reported successfully", { report });
   }
 );
@@ -95,6 +104,15 @@ export const getEmergencyAiRecommendation = asyncHandler(
     sendSuccess(res, 200, "Emergency AI recommendation generated successfully", {
       recommendation,
     });
+  }
+);
+
+export const getVisitorSafeAnnouncements = asyncHandler(
+  async (req: Request, res: Response) => {
+    const announcements = await emergencyService.getVisitorSafeAnnouncements(
+      req.params.eventId
+    );
+    sendSuccess(res, 200, "Announcements fetched successfully", { announcements });
   }
 );
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AlertCircle, ArrowLeft, Inbox, Loader2, LogOut, MonitorPlay } from 'lucide-react'
@@ -10,6 +10,7 @@ import { DemoStageEmergency } from '@/components/demo/DemoStageEmergency'
 import { DemoStageOverview } from '@/components/demo/DemoStageOverview'
 import { DemoStagePrediction } from '@/components/demo/DemoStagePrediction'
 import { DemoStageRecommendation } from '@/components/demo/DemoStageRecommendation'
+import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDemoRunner } from '@/hooks/useDemoRunner'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
@@ -17,6 +18,9 @@ import { useMyEvents } from '@/hooks/useMyEvents'
 import { useStadiumRegions } from '@/hooks/useStadiumRegions'
 import { DEMO_SCRIPT } from '@/lib/demo/script'
 import { pickCongestionRegion } from '@/lib/demo/pickCongestionRegion'
+import * as eventsApi from '@/lib/api/events'
+import type { AppEvent } from '@/lib/api/events'
+import { ApiRequestError } from '@/lib/api/client'
 
 function DemoHeader({
   eventId,
@@ -86,9 +90,60 @@ export function PresentationModePage() {
     error: eventsError,
   } = useMyEvents()
 
+  // Presentation Mode is a showcase feature — it should demo whatever live
+  // event exists on the platform, not only events the current user happens
+  // to own. Falls back to any Live event only once we know the user's own
+  // event list is genuinely empty, and reuses that event (never creates one).
+  const [liveEvents, setLiveEvents] = useState<AppEvent[]>([])
+  const [liveEventsLoading, setLiveEventsLoading] = useState(false)
+  const [liveEventsError, setLiveEventsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (eventsLoading || events.length > 0) return
+
+    let cancelled = false
+    setLiveEventsLoading(true)
+    setLiveEventsError(null)
+
+    eventsApi
+      .listLiveEvents()
+      .then((result) => {
+        if (cancelled) return
+        setLiveEvents(result.items)
+        if (result.items.length > 0) {
+          selectEvent(result.items[0].id)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLiveEventsError(err instanceof ApiRequestError ? err.message : 'Failed to load live events')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLiveEventsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [eventsLoading, events.length, selectEvent])
+
+  const usingOwnEvents = events.length > 0
+  const demoEvents = usingOwnEvents ? events : liveEvents
+  const demoLoading = eventsLoading || (!usingOwnEvents && liveEventsLoading)
+  const demoError = eventsError ?? (!usingOwnEvents ? liveEventsError : null)
+
   const { summary, crowd, parking, loading: summaryLoading, error: summaryError } = useEventOperationalData(selectedEventId)
   const regions = useStadiumRegions(crowd, parking, summary?.generatedAt ?? null)
   const congestionRegion = useMemo(() => pickCongestionRegion(regions), [regions])
+
+  const [drawerRegionId, setDrawerRegionId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const drawerRegion = regions.find((region) => region.id === drawerRegionId) ?? null
+  const handleSelectRegion = (id: string) => {
+    setDrawerRegionId(id)
+    setDrawerOpen(true)
+  }
 
   const demo = useDemoRunner()
   const stage = DEMO_SCRIPT[demo.stageIndex]
@@ -99,7 +154,7 @@ export function PresentationModePage() {
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <DemoHeader eventId={selectedEventId} events={events} onSelectEvent={selectEvent} />
+      <DemoHeader eventId={selectedEventId} events={demoEvents} onSelectEvent={selectEvent} />
       <DemoModeBanner
         stageIndex={demo.stageIndex}
         stageLabel={demo.phase === 'idle' ? 'Ready to start' : stage.label}
@@ -125,30 +180,30 @@ export function PresentationModePage() {
           />
         </motion.div>
 
-        {eventsLoading && (
+        {demoLoading && (
           <div className="flex items-center gap-2 py-6 text-sm text-text-muted">
-            <Loader2 className="size-4 animate-spin" /> Loading your events…
+            <Loader2 className="size-4 animate-spin" /> Loading event data…
           </div>
         )}
 
-        {!eventsLoading && eventsError && (
+        {!demoLoading && demoError && (
           <div className="flex items-center gap-2 rounded-xl border border-error/25 bg-error/5 px-3.5 py-3 text-sm text-error">
-            <AlertCircle className="size-4 shrink-0" /> {eventsError}
+            <AlertCircle className="size-4 shrink-0" /> {demoError}
           </div>
         )}
 
-        {!eventsLoading && !eventsError && events.length === 0 && (
+        {!demoLoading && !demoError && demoEvents.length === 0 && (
           <div className="glass-card rounded-3xl p-10 flex flex-col items-center text-center gap-3">
             <Inbox className="size-8 text-text-muted" />
-            <h3 className="font-semibold text-text-primary">No events yet</h3>
+            <h3 className="font-semibold text-text-primary">No live event to demo</h3>
             <p className="max-w-sm text-sm text-text-muted">
-              Create an event from the Command Center before running the presentation demo.
+              Presentation Mode needs at least one Live event on the platform. Create one and set its status to Live from the Command Center.
             </p>
             <Link to="/dashboard" className="text-sm text-accent hover:underline">Go to Command Center</Link>
           </div>
         )}
 
-        {!eventsLoading && !eventsError && events.length > 0 && (
+        {!demoLoading && !demoError && demoEvents.length > 0 && (
           <div className="space-y-4">
             {summaryError && (
               <div className="flex items-center gap-2 rounded-xl border border-error/25 bg-error/5 px-3.5 py-3 text-sm text-error">
@@ -159,23 +214,23 @@ export function PresentationModePage() {
             <DemoNarration stageId={stage.id} title={stage.label} narration={stage.narration} />
 
             {demo.phase === 'idle' && (
-              <DemoStageOverview summary={summary} regions={regions} loading={summaryLoading} />
+              <DemoStageOverview summary={summary} regions={regions} loading={summaryLoading} onSelectRegion={handleSelectRegion} />
             )}
 
             {demo.phase !== 'idle' && stage.id === 'overview' && (
-              <DemoStageOverview summary={summary} regions={regions} loading={summaryLoading} />
+              <DemoStageOverview summary={summary} regions={regions} loading={summaryLoading} onSelectRegion={handleSelectRegion} />
             )}
 
             {demo.phase !== 'idle' && stage.id === 'congestion' && (
-              <DemoStageCongestion regions={regions} congestionRegion={congestionRegion} />
+              <DemoStageCongestion regions={regions} congestionRegion={congestionRegion} onSelectRegion={handleSelectRegion} />
             )}
 
             {demo.phase !== 'idle' && stage.id === 'prediction' && (
-              <DemoStagePrediction eventId={selectedEventId} regions={regions} congestionRegion={congestionRegion} />
+              <DemoStagePrediction eventId={selectedEventId} regions={regions} congestionRegion={congestionRegion} onSelectRegion={handleSelectRegion} />
             )}
 
             {demo.phase !== 'idle' && stage.id === 'emergency' && (
-              <DemoStageEmergency regions={regions} congestionRegion={congestionRegion} eventId={selectedEventId} />
+              <DemoStageEmergency regions={regions} congestionRegion={congestionRegion} eventId={selectedEventId} onSelectRegion={handleSelectRegion} />
             )}
 
             {demo.phase !== 'idle' && stage.id === 'recommendation' && (
@@ -192,6 +247,8 @@ export function PresentationModePage() {
           </div>
         )}
       </main>
+
+      <RegionDetailsDrawer region={drawerRegion} open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   )
 }

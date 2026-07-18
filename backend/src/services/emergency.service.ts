@@ -204,6 +204,43 @@ export const deleteEmergencyReport = async (id: string): Promise<void> => {
 };
 
 /* ============================================================
+ * Visitor-safe announcements — pure addition below this line.
+ * Nothing above is modified. Maps recent EmergencyReport docs to a friendly
+ * feed that explicitly drops `description` and `severity` (ops-internal)
+ * — this is why it's a separate function rather than reusing
+ * getEventEmergencySummary/listEmergencyReportsByEvent, which return the
+ * full document.
+ * ============================================================ */
+
+export interface VisitorAnnouncement {
+  id: string;
+  type: EmergencyType;
+  location: string;
+  status: EmergencyStatus;
+  createdAt: Date;
+}
+
+const RECENT_ANNOUNCEMENT_LIMIT = 10;
+
+export const getVisitorSafeAnnouncements = async (
+  eventId: string
+): Promise<VisitorAnnouncement[]> => {
+  await assertEventExists(eventId);
+
+  const reports = await EmergencyReport.find({ event: eventId })
+    .sort({ createdAt: -1 })
+    .limit(RECENT_ANNOUNCEMENT_LIMIT);
+
+  return reports.map((report) => ({
+    id: report.id,
+    type: report.type,
+    location: report.location || "Unspecified location",
+    status: report.status,
+    createdAt: report.createdAt,
+  }));
+};
+
+/* ============================================================
  * Emergency Command Center — AI response recommendations.
  *
  * Pure addition below this line; nothing above is modified. Reuses the

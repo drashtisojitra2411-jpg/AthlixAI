@@ -9,9 +9,10 @@ import { occupancyToStatus } from '@/lib/heatmap/statusColors'
 interface DemoStageCongestionProps {
   regions: StadiumRegionData[]
   congestionRegion: DemoCongestionRegion
+  onSelectRegion: (id: string) => void
 }
 
-export function DemoStageCongestion({ regions, congestionRegion }: DemoStageCongestionProps) {
+export function DemoStageCongestion({ regions, congestionRegion, onSelectRegion }: DemoStageCongestionProps) {
   const overlay: Record<string, PredictedRegionOverlay> = {
     [congestionRegion.id]: {
       predictedOccupancy: congestionRegion.occupancyPercent,
@@ -32,7 +33,7 @@ export function DemoStageCongestion({ regions, congestionRegion }: DemoStageCong
       <StatusLegend />
 
       <div className="glass-card rounded-3xl p-4 sm:p-6">
-        <StadiumMap regions={regions} onSelectRegion={() => {}} overlay={overlay} />
+        <StadiumMap regions={regions} onSelectRegion={onSelectRegion} overlay={overlay} />
       </div>
     </div>
   )

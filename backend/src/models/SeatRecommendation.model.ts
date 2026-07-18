@@ -1,6 +1,7 @@
 import mongoose, { Schema, type Document, type Model, type Types } from "mongoose";
+import { SEAT_BUDGET_TIERS } from "../config/constants";
 
-export type SeatBudget = "value" | "premium" | "elite";
+export type SeatBudget = (typeof SEAT_BUDGET_TIERS)[number];
 export type DistanceToAction = "Trackside" | "Lower Bowl" | "Balanced" | "Panoramic";
 
 export interface ISeatRecommendation extends Document {
@@ -34,7 +35,7 @@ const seatRecommendationSchema = new Schema<ISeatRecommendation>(
     },
     budget: {
       type: String,
-      enum: ["value", "premium", "elite"],
+      enum: [...SEAT_BUDGET_TIERS],
       required: [true, "Budget tier is required"],
     },
     groupSize: {

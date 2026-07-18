@@ -7,3 +7,10 @@ export const askCopilotSchema = z.object({
 });
 
 export type AskCopilotBody = z.infer<typeof askCopilotSchema>;
+
+export const askVisitorCopilotSchema = z.object({
+  eventId: z.string().min(1, "Event id is required"),
+  prompt: z.string().trim().min(1, "Prompt is required").max(500),
+});
+
+export type AskVisitorCopilotBody = z.infer<typeof askVisitorCopilotSchema>;

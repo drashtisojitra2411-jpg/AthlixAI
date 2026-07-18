@@ -102,7 +102,7 @@ export function CrowdIntelligenceModule({ crowd }: CrowdIntelligenceProps) {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-semibold text-text-primary">Venue Heatmap</h4>
-                <p className="text-xs text-text-muted">AI-weighted occupancy placeholder with live zone labels</p>
+                <p className="text-xs text-text-muted">AI-weighted occupancy grid with live zone labels</p>
               </div>
               <Badge variant="copilot">Live Sensor Blend</Badge>
             </div>

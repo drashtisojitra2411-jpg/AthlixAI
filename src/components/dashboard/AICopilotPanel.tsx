@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bot, CornerDownLeft, LoaderCircle, MessageSquareQuote, Send, User2, Zap } from 'lucide-react'
+import { Bot, CornerDownLeft, LoaderCircle, MessageSquareQuote, Send, User2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,6 @@ import {
   generateCopilotResponse,
 } from '@/lib/copilot/engine'
 import type { CopilotInsightCardProps } from '@/lib/copilot/schema'
-import { askCopilot, isGeminiConfigured } from '@/lib/copilot/gemini'
 import { cn } from '@/lib/utils'
 import { StructuredAiCard, serializeInsight } from './StructuredAiCard'
 
@@ -126,24 +125,7 @@ export function AICopilotPanel({ context, seatInput, platformIntel }: AICopilotP
     setMessages((current) => [...current, userMessage, assistantMessage])
 
     try {
-      let response: CopilotInsightCardProps
-
-      if (isGeminiConfigured) {
-        // Build rich context prompt for Gemini
-        const contextSummary = [
-          `Venue: ATHLIX Stadium Operations`,
-          `Crowd zones: ${context.crowd.map((z) => `${z.zone} ${z.capacity}%`).join(', ')}`,
-          `Parking: ${context.parking.map((p) => `${p.lot} (${p.trafficLevel} traffic, ${p.total - p.occupied} spaces free)`).join(', ')}`,
-          `Active match: ${context.tournament.find((t) => t.status === 'active')?.event ?? 'None'}`,
-          `Weather: ${context.weather.condition}, ${context.weather.temp}°C, ${context.weather.wind}km/h wind`,
-          `Emergency mode: ${context.emergencyType}`,
-          `User query: ${prompt}`,
-        ].join('\n')
-
-        response = await askCopilot(contextSummary)
-      } else {
-        response = generateCopilotResponse(prompt, context, seatInput)
-      }
+      const response: CopilotInsightCardProps = generateCopilotResponse(prompt, context, seatInput)
 
       const streamText = buildStreamingMarkdown(response)
       let index = 0
@@ -219,15 +201,9 @@ export function AICopilotPanel({ context, seatInput, platformIntel }: AICopilotP
             <Badge variant="copilot" className="w-fit">
               Platform Brain Online
             </Badge>
-            {isGeminiConfigured ? (
-              <Badge variant="success" className="w-fit flex items-center gap-1">
-                <Zap className="size-3" /> Gemini Active
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="w-fit text-text-muted">
-                Local Engine
-              </Badge>
-            )}
+            <Badge variant="outline" className="w-fit text-text-muted">
+              Local Engine
+            </Badge>
           </div>
         </div>
       </CardHeader>

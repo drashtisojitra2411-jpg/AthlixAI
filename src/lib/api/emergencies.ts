@@ -129,3 +129,25 @@ export function getDemoEmergencyAiRecommendation(
     { method: 'POST', body: scenario },
   )
 }
+
+/* ============================================================
+ * Visitor-safe announcements — pure addition below this line.
+ * Nothing above is modified. Deliberately excludes description/severity —
+ * see backend/src/services/emergency.service.ts#getVisitorSafeAnnouncements.
+ * ============================================================ */
+
+export interface VisitorAnnouncement {
+  id: string
+  type: EmergencyType
+  location: string
+  status: EmergencyStatus
+  createdAt: string
+}
+
+export function getVisitorAnnouncements(
+  eventId: string,
+): Promise<{ announcements: VisitorAnnouncement[] }> {
+  return apiRequest<{ announcements: VisitorAnnouncement[] }>(
+    `/emergencies/event/${eventId}/announcements`,
+  )
+}
