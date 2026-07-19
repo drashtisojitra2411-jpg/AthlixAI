@@ -5,7 +5,7 @@ import { Bell, Building2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Us
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 
 const NOTIFICATION_KEY = 'athlix_notification_prefs'
 const AI_PREFS_KEY = 'athlix_ai_prefs'

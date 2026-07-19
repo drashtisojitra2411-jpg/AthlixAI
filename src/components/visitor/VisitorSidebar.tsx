@@ -4,7 +4,7 @@ import {
   Zap, Home, CalendarSearch, Ticket, Map, Car, UtensilsCrossed,
   Sparkles, LifeBuoy, User2, PanelLeftClose, PanelLeft, LogOut,
 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 

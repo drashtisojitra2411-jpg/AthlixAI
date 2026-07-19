@@ -16,5 +16,8 @@ export default defineConfig({
     // built-in test runner (not Vitest) and depend on backend/.env being
     // loaded from the backend cwd, so they fail when collected from here.
     include: ['src/**/*.test.{ts,tsx}'],
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    restoreMocks: true,
   },
 })

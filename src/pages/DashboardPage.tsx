@@ -31,7 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { useMyEvents } from '@/hooks/useMyEvents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
 import { useStadiums } from '@/hooks/useStadiums'
@@ -376,6 +376,15 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 function NotificationsMenu({ activities }: { activities: ActivityItem[] }) {
   const [open, setOpen] = useState(false)
 
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open])
+
   return (
     <div className="relative">
       <button
@@ -393,7 +402,7 @@ function NotificationsMenu({ activities }: { activities: ActivityItem[] }) {
       <AnimatePresence>
         {open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}

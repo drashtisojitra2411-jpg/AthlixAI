@@ -12,7 +12,8 @@ import {
 } from '@/lib/copilot/engine'
 import type { CopilotInsightCardProps } from '@/lib/copilot/schema'
 import { cn } from '@/lib/utils'
-import { StructuredAiCard, serializeInsight } from './StructuredAiCard'
+import { StructuredAiCard } from './StructuredAiCard'
+import { serializeInsight } from './insight-utils'
 
 interface CopilotMessage {
   id: string

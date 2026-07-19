@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { VisitorShell } from '@/components/visitor/VisitorShell'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { useMyBookings } from '@/hooks/useMyBookings'
 
 export function VisitorProfilePage() {

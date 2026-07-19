@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { AuroraBackground } from '@/components/ambient/AuroraBackground'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
 

@@ -13,7 +13,7 @@ import { ReportIncidentDialog } from '@/components/emergency/ReportIncidentDialo
 import { StadiumMap } from '@/components/heatmap/StadiumMap'
 import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
 import { EventSelect } from '@/components/shared/EventSelect'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import { useEmergencyIncidents } from '@/hooks/useEmergencyIncidents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
 import { useMyEvents } from '@/hooks/useMyEvents'

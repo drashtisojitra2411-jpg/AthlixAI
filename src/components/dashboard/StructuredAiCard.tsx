@@ -97,17 +97,6 @@ function MarkdownBlock({ content }: { content: string }) {
   )
 }
 
-export function serializeInsight(insight: CopilotInsightCardProps) {
-  return [
-    `Recommendation: ${insight.recommendation}`,
-    `Prediction: ${insight.prediction ?? 'Not provided'}`,
-    `Reason: ${insight.reasoning}`,
-    `Confidence: ${insight.confidence}%`,
-    `Suggested Actions: ${insight.suggestedActions.map((action) => action.label).join(', ')}`,
-    `Summary: ${insight.summary}`,
-  ].join('\n')
-}
-
 export function StructuredAiCard({
   insight,
   title = 'AI Recommendation',

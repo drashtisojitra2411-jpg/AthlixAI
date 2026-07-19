@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { AuroraBackground } from '@/components/ambient/AuroraBackground'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/useAuth'
 import type { UserRole } from '@/lib/api/auth'
 
 const ACCOUNT_TYPES: Array<{ role: UserRole; label: string; description: string; icon: typeof Briefcase }> = [

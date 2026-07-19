@@ -67,6 +67,13 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 // straight into document.body, outside any backdrop-filter/transform
 // ancestor (glass-card, Dialog centering, sticky headers) that would
 // otherwise corrupt its layout.
+//
+// Height is capped at `min(240px, --radix-select-content-available-height)`
+// rather than a bare 240px so the popper never claims more room than the
+// viewport actually has near a screen edge — a bare cap can get pushed/clipped
+// by Radix's own collision handling, which reads as a stray empty gap.
+// Width is forced to exactly match the trigger (`w-[--radix-select-trigger-width]`,
+// not `min-w-`) so the dropdown never renders wider than what opened it.
 const SelectContent = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
@@ -77,11 +84,11 @@ const SelectContent = React.forwardRef<
       position={position}
       sideOffset={sideOffset}
       className={cn(
-        'relative z-[400] max-h-[240px] min-w-[8rem] overflow-hidden rounded-[var(--radius-md)] glass-card text-text-primary shadow-lg',
+        'relative z-[var(--z-popover)] max-h-[min(240px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden rounded-[var(--radius-md)] glass-popover text-text-primary shadow-lg',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         position === 'popper' &&
-          'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+          'w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className,
       )}
       {...props}
@@ -89,9 +96,7 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          'max-h-[240px] overflow-y-auto p-1',
-          position === 'popper' &&
-            'w-full min-w-[var(--radix-select-trigger-width)]',
+          'max-h-[min(240px,var(--radix-select-content-available-height))] w-full overflow-y-auto p-1',
         )}
       >
         {children}
@@ -134,7 +139,7 @@ const SelectItem = React.forwardRef<
         <Check className="size-3.5 text-accent" />
       </SelectPrimitive.ItemIndicator>
     </span>
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    <SelectPrimitive.ItemText className="block truncate">{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName
