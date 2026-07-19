@@ -7,6 +7,7 @@ import { VisitorShell } from '@/components/visitor/VisitorShell'
 import { useBookedEventSelector } from '@/hooks/useBookedEventSelector'
 import { askVisitorCopilot } from '@/lib/api/copilot'
 import { ApiRequestError } from '@/lib/api/client'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 interface Turn {
   id: string
@@ -64,17 +65,7 @@ export function VisitorAssistantPage() {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">AI Assistant</h1>
           <p className="mt-0.5 text-sm text-text-muted">Ask about parking, food, schedule, and more.</p>
         </div>
-        {events.length > 0 && (
-          <select
-            value={selectedEventId ?? ''}
-            onChange={(e) => selectEvent(e.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={selectedEventId} onChange={selectEvent} />
       </motion.div>
 
       {eventsLoading && (

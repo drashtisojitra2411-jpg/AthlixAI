@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button'
 import { VisitorShell } from '@/components/visitor/VisitorShell'
 import { useStadiums } from '@/hooks/useStadiums'
 import { useBrowseEvents } from '@/hooks/useBrowseEvents'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Radix Select items can't have an empty-string value (that's reserved for
+// "no selection"), so "All stadiums" needs a real sentinel value that gets
+// translated back to '' at the filter-state boundary.
+const ALL_STADIUMS_VALUE = '__all__'
 
 export function VisitorBrowseEventsPage() {
   const navigate = useNavigate()
@@ -39,16 +45,20 @@ export function VisitorBrowseEventsPage() {
       </motion.div>
 
       <div className="glass-card rounded-2xl p-4 flex flex-col sm:flex-row gap-3">
-        <select
-          value={stadiumId}
-          onChange={(e) => setStadiumId(e.target.value)}
-          className="h-10 flex-1 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
+        <Select
+          value={stadiumId || ALL_STADIUMS_VALUE}
+          onValueChange={(value) => setStadiumId(value === ALL_STADIUMS_VALUE ? '' : value)}
         >
-          <option value="">All stadiums</option>
-          {stadiums.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="h-10 flex-1 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_STADIUMS_VALUE}>All stadiums</SelectItem>
+            {stadiums.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <input
           type="date"
           value={from}

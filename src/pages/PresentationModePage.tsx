@@ -11,6 +11,7 @@ import { DemoStageOverview } from '@/components/demo/DemoStageOverview'
 import { DemoStagePrediction } from '@/components/demo/DemoStagePrediction'
 import { DemoStageRecommendation } from '@/components/demo/DemoStageRecommendation'
 import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
+import { EventSelect } from '@/components/shared/EventSelect'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDemoRunner } from '@/hooks/useDemoRunner'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
@@ -53,17 +54,7 @@ function DemoHeader({
 
         <div className="flex-1" />
 
-        {events.length > 0 && (
-          <select
-            value={eventId ?? ''}
-            onChange={(event) => onSelectEvent(event.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={eventId} onChange={onSelectEvent} />
 
         <button
           onClick={() => {

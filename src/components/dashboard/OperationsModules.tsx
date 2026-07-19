@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   buildCrowdInsight,
   buildEmergencyInsight,
@@ -211,20 +212,24 @@ export function SeatRecommendationModule({
         <div className="grid gap-3 md:grid-cols-5">
           <label className="space-y-2">
             <span className="text-xs uppercase tracking-[0.18em] text-text-muted">Budget</span>
-            <select
+            <Select
               value={seatInput.budget}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 onSeatInputChange({
                   ...seatInput,
-                  budget: event.target.value as SeatRecommendationInput['budget'],
+                  budget: value as SeatRecommendationInput['budget'],
                 })
               }
-              className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-text-primary outline-none"
             >
-              <option value="value">Value</option>
-              <option value="premium">Premium</option>
-              <option value="elite">Elite</option>
-            </select>
+              <SelectTrigger className="h-11 w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="value">Value</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="elite">Elite</SelectItem>
+              </SelectContent>
+            </Select>
           </label>
 
           <label className="space-y-2">

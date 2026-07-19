@@ -12,6 +12,7 @@ import { IncidentList } from '@/components/emergency/IncidentList'
 import { ReportIncidentDialog } from '@/components/emergency/ReportIncidentDialog'
 import { StadiumMap } from '@/components/heatmap/StadiumMap'
 import { RegionDetailsDrawer } from '@/components/heatmap/RegionDetailsDrawer'
+import { EventSelect } from '@/components/shared/EventSelect'
 import { useAuth } from '@/contexts/AuthContext'
 import { useEmergencyIncidents } from '@/hooks/useEmergencyIncidents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
@@ -56,17 +57,7 @@ function EmergencyHeader({
 
         <div className="flex-1" />
 
-        {events.length > 0 && (
-          <select
-            value={eventId ?? ''}
-            onChange={(event) => onSelectEvent(event.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={eventId} onChange={onSelectEvent} />
 
         <Badge variant="live" className="hidden sm:inline-flex">MONITORING</Badge>
 

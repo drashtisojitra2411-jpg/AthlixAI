@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useMyEvents } from '@/hooks/useMyEvents'
 import { useEventOperationalData } from '@/hooks/useEventOperationalData'
 import type { EventOperationalSummary } from '@/lib/api/dashboard'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 // No dedicated food/merchandise pricing field exists yet — these are
 // labeled estimates from the recorded order/unit counts, the same
@@ -40,17 +41,7 @@ function RevenueHeader({ eventId, events, onSelectEvent }: {
 
         <div className="flex-1" />
 
-        {events.length > 0 && (
-          <select
-            value={eventId ?? ''}
-            onChange={(event) => onSelectEvent(event.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={eventId} onChange={onSelectEvent} />
 
         <button
           onClick={() => {

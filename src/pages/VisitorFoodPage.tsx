@@ -7,6 +7,7 @@ import { VisitorShell } from '@/components/visitor/VisitorShell'
 import { useBookedEventSelector } from '@/hooks/useBookedEventSelector'
 import { useVisitorEventSummary } from '@/hooks/useVisitorEventSummary'
 import { cn } from '@/lib/utils'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 const DEMAND_COPY: Record<'Low' | 'Moderate' | 'High', { badge: 'success' | 'warning' | 'error'; note: string }> = {
   Low: { badge: 'success', note: 'Short lines expected — good time to grab a bite.' },
@@ -29,17 +30,7 @@ export function VisitorFoodPage() {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Food & Drinks</h1>
           <p className="mt-0.5 text-sm text-text-muted">Live food court demand for your event.</p>
         </div>
-        {events.length > 0 && (
-          <select
-            value={selectedEventId ?? ''}
-            onChange={(e) => selectEvent(e.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={selectedEventId} onChange={selectEvent} />
       </motion.div>
 
       {eventsLoading && (

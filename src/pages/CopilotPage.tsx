@@ -11,6 +11,7 @@ import { ApiRequestError } from '@/lib/api/client'
 import { LiveContextPanel, type LiveContextData } from '@/components/copilot/LiveContextPanel'
 import { CommandBar } from '@/components/copilot/CommandBar'
 import { ConversationCard, type ConversationTurn } from '@/components/copilot/ConversationCard'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 // Same illustrative weather source DashboardPage.tsx uses — no backend weather API exists.
 const WEATHER = { temp: 28, condition: 'Partly Cloudy' }
@@ -42,17 +43,7 @@ function CopilotHeader({ eventId, events, onSelectEvent }: {
 
         <div className="flex-1" />
 
-        {events.length > 0 && (
-          <select
-            value={eventId ?? ''}
-            onChange={(event) => onSelectEvent(event.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={eventId} onChange={onSelectEvent} />
 
         <Badge variant="live" className="hidden sm:inline-flex">MATCH LIVE</Badge>
 

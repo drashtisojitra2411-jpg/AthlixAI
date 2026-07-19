@@ -8,6 +8,7 @@ import { useBookedEventSelector } from '@/hooks/useBookedEventSelector'
 import { reportEmergency } from '@/lib/api/emergencies'
 import type { EmergencyType } from '@/lib/api/emergencies'
 import { ApiRequestError } from '@/lib/api/client'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 const INCIDENT_TYPES: Array<{ type: EmergencyType; label: string; icon: typeof HeartPulse }> = [
   { type: 'medical', label: 'Medical', icon: HeartPulse },
@@ -52,17 +53,14 @@ export function VisitorEmergencyPage() {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Emergency Help</h1>
           <p className="mt-0.5 text-sm text-text-muted">Alert on-site staff about an incident immediately.</p>
         </div>
-        {events.length > 0 && (
-          <select
-            value={selectedEventId ?? ''}
-            onChange={(e) => { selectEvent(e.target.value); setSubmitted(false) }}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect
+          events={events}
+          value={selectedEventId}
+          onChange={(id) => {
+            selectEvent(id)
+            setSubmitted(false)
+          }}
+        />
       </motion.div>
 
       <div className="flex items-center gap-2 rounded-xl border border-warning/25 bg-warning/5 px-3.5 py-3 text-sm text-warning">

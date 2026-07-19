@@ -38,8 +38,15 @@ import { useStadiums } from '@/hooks/useStadiums'
 import { createStadium } from '@/lib/api/stadiums'
 import { ApiRequestError } from '@/lib/api/client'
 import type { ChatMessage, EventOperationalSummary } from '@/lib/api/dashboard'
+import { EventSelect } from '@/components/shared/EventSelect'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const
+
+// Radix Select items can't have an empty-string value (that's reserved for
+// "no selection"), so the "no stadium" option needs a real sentinel value
+// that gets translated back to '' at the form-state boundary.
+const NO_STADIUM_VALUE = '__none__'
 
 /* ============================================================
    STATIC UI CHROME (no backend equivalent — see integration notes)
@@ -1024,17 +1031,7 @@ function EventSelector({
 
   return (
     <div className="flex items-center gap-2">
-      {events.length > 0 && (
-        <select
-          value={selectedEventId ?? ''}
-          onChange={(e) => onSelect(e.target.value)}
-          className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-        >
-          {events.map((event) => (
-            <option key={event.id} value={event.id}>{event.name}</option>
-          ))}
-        </select>
-      )}
+      <EventSelect events={events} value={selectedEventId} onChange={onSelect} />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setOpen(true)}>
@@ -1049,19 +1046,24 @@ function EventSelector({
             <Input placeholder="Event name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
 
             <div className="flex items-center gap-2">
-              <select
-                value={form.stadium}
-                onChange={(e) => {
-                  const stadium = stadiums.find((s) => s.id === e.target.value)
-                  setForm((p) => ({ ...p, stadium: e.target.value, venue: stadium ? stadium.name : p.venue }))
+              <Select
+                value={form.stadium || NO_STADIUM_VALUE}
+                onValueChange={(next) => {
+                  const stadiumId = next === NO_STADIUM_VALUE ? '' : next
+                  const stadium = stadiums.find((s) => s.id === stadiumId)
+                  setForm((p) => ({ ...p, stadium: stadiumId, venue: stadium ? stadium.name : p.venue }))
                 }}
-                className="h-9 flex-1 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
               >
-                <option value="">No stadium — enter venue manually</option>
-                {stadiums.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="h-9 flex-1 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_STADIUM_VALUE}>No stadium — enter venue manually</SelectItem>
+                  {stadiums.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button type="button" variant="ghost" size="sm" className="gap-1 text-xs shrink-0" onClick={() => setShowNewStadium((v) => !v)}>
                 <Plus className="size-3.5" /> Stadium
               </Button>

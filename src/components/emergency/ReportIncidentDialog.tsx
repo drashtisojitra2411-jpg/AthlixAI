@@ -11,14 +11,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { EmergencySeverity, EmergencyReport, EmergencyType } from '@/lib/api/emergencies'
 import { INCIDENT_TYPE_META, INCIDENT_TYPES, SEVERITY_LABEL } from '@/lib/emergency/incidentTypes'
 import { STADIUM_REGIONS } from '@/lib/heatmap/regions.config'
 
 const SEVERITIES: EmergencySeverity[] = ['low', 'medium', 'high', 'critical']
 
-const selectClassName =
-  'h-11 w-full rounded-[var(--radius-md)] bg-[rgba(255,255,255,0.03)] border border-[var(--color-border-default)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]'
+// Radix Select items can't have an empty-string value (that's reserved for
+// "no selection"), so "Unspecified" needs a real sentinel value that gets
+// translated back to '' at the form-state boundary.
+const UNSPECIFIED_REGION_VALUE = '__unspecified__'
 
 interface ReportIncidentDialogProps {
   onCreated: (report: EmergencyReport) => void
@@ -90,40 +93,54 @@ export function ReportIncidentDialog({ onCreated, onSubmit }: ReportIncidentDial
         <div className="space-y-3">
           <div>
             <label className="mb-1.5 block text-xs text-text-muted">Incident Type</label>
-            <select value={type} onChange={(e) => setType(e.target.value as EmergencyType)} className={selectClassName}>
-              {INCIDENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {INCIDENT_TYPE_META[t].label}
-                </option>
-              ))}
-            </select>
+            <Select value={type} onValueChange={(value) => setType(value as EmergencyType)}>
+              <SelectTrigger className="h-11 w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INCIDENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {INCIDENT_TYPE_META[t].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs text-text-muted">Severity</label>
-            <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value as EmergencySeverity)}
-              className={selectClassName}
-            >
-              {SEVERITIES.map((s) => (
-                <option key={s} value={s}>
-                  {SEVERITY_LABEL[s]}
-                </option>
-              ))}
-            </select>
+            <Select value={severity} onValueChange={(value) => setSeverity(value as EmergencySeverity)}>
+              <SelectTrigger className="h-11 w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SEVERITIES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {SEVERITY_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs text-text-muted">Stadium Region</label>
-            <select value={regionId} onChange={(e) => setRegionId(e.target.value)} className={selectClassName}>
-              <option value="">Unspecified</option>
-              {STADIUM_REGIONS.map((region) => (
-                <option key={region.id} value={region.id}>
-                  {region.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={regionId || UNSPECIFIED_REGION_VALUE}
+              onValueChange={(value) => setRegionId(value === UNSPECIFIED_REGION_VALUE ? '' : value)}
+            >
+              <SelectTrigger className="h-11 w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNSPECIFIED_REGION_VALUE}>Unspecified</SelectItem>
+                {STADIUM_REGIONS.map((region) => (
+                  <SelectItem key={region.id} value={region.id}>
+                    {region.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

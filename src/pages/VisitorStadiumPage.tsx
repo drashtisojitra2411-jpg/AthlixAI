@@ -11,6 +11,7 @@ import { useVisitorEventSummary } from '@/hooks/useVisitorEventSummary'
 import { useStadiumRegions } from '@/hooks/useStadiumRegions'
 import * as eventsApi from '@/lib/api/events'
 import type { BrowsableEvent } from '@/lib/api/events'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 export function VisitorStadiumPage() {
   useEffect(() => {
@@ -54,17 +55,7 @@ export function VisitorStadiumPage() {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Stadium Map</h1>
           <p className="mt-0.5 text-sm text-text-muted">Live occupancy across the venue.</p>
         </div>
-        {events.length > 0 && (
-          <select
-            value={selectedEventId ?? ''}
-            onChange={(e) => selectEvent(e.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={selectedEventId} onChange={selectEvent} />
       </motion.div>
 
       {eventsLoading && (

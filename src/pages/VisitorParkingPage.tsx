@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { VisitorShell } from '@/components/visitor/VisitorShell'
 import { useBookedEventSelector } from '@/hooks/useBookedEventSelector'
 import { useVisitorEventSummary } from '@/hooks/useVisitorEventSummary'
+import { EventSelect } from '@/components/shared/EventSelect'
 
 export function VisitorParkingPage() {
   useEffect(() => {
@@ -23,17 +24,7 @@ export function VisitorParkingPage() {
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Parking</h1>
           <p className="mt-0.5 text-sm text-text-muted">Live availability and the shortest walk to your gate.</p>
         </div>
-        {events.length > 0 && (
-          <select
-            value={selectedEventId ?? ''}
-            onChange={(e) => selectEvent(e.target.value)}
-            className="h-9 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border-default)] px-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-          >
-            {events.map((event) => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        )}
+        <EventSelect events={events} value={selectedEventId} onChange={selectEvent} />
       </motion.div>
 
       {eventsLoading && (

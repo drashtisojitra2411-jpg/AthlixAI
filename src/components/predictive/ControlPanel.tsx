@@ -2,6 +2,7 @@ import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { MatchImportance, PredictiveControls } from '@/lib/api/predictive'
 
 interface ControlPanelProps {
@@ -80,28 +81,33 @@ export function ControlPanel({ controls, onChange, onRun, running, disabled }: C
 
       <div>
         <Label>Weather</Label>
-        <select
-          value={controls.weather}
-          onChange={(event) => set('weather', event.target.value)}
-          className="mt-2 h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[rgba(255,255,255,0.03)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
-        >
-          {WEATHER_OPTIONS.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <Select value={controls.weather} onValueChange={(value) => set('weather', value)}>
+          <SelectTrigger className="mt-2 h-10 w-full text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WEATHER_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>{option}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
         <Label>Match Importance</Label>
-        <select
+        <Select
           value={controls.matchImportance}
-          onChange={(event) => set('matchImportance', event.target.value as MatchImportance)}
-          className="mt-2 h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[rgba(255,255,255,0.03)] px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--color-border-focus)]"
+          onValueChange={(value) => set('matchImportance', value as MatchImportance)}
         >
-          {MATCH_IMPORTANCE_OPTIONS.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+          <SelectTrigger className="mt-2 h-10 w-full text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MATCH_IMPORTANCE_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>{option}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <RangeField
