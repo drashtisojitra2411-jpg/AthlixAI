@@ -192,7 +192,7 @@ export function AICopilotPanel({ context, seatInput, platformIntel }: AICopilotP
           <div>
             <CardTitle className="flex items-center gap-2 text-xl text-text-primary">
               <Bot className="size-5 text-accent" />
-              AI Copilot
+              Ops Copilot
             </CardTitle>
             <p className="mt-1 text-sm text-text-muted">
               Operational guidance with streaming structured responses, reasoning, and next-step cards.

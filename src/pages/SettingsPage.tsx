@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bell, Building2, LogOut, Settings as SettingsIcon, Shield, Sparkles, User, ArrowLeft } from 'lucide-react'
+import { Bell, LogOut, Settings as SettingsIcon, Shield, Sparkles, User, ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -135,7 +135,7 @@ export function SettingsPage() {
       <main className="mx-auto max-w-3xl p-4 sm:p-6 space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">Settings</h1>
-          <p className="mt-0.5 text-sm text-text-muted">Manage your profile, organization, and preferences.</p>
+          <p className="mt-0.5 text-sm text-text-muted">Manage your profile and preferences.</p>
         </motion.div>
 
         {/* Profile */}
@@ -156,18 +156,6 @@ export function SettingsPage() {
                 <Badge variant="outline" className="mt-1.5">{user?.role ?? '—'}</Badge>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Organization */}
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-text-primary">
-              <Building2 className="size-4 text-accent" /> Organization
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-sm text-text-muted">No organization on file for this account.</p>
           </CardContent>
         </Card>
 

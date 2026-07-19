@@ -44,7 +44,7 @@ Everything is backed by a single source of truth (`Event`, `CrowdPrediction`, `P
 | **Parking** | Occupancy, per-lot utilization, and AI-recommended routing. |
 | **Revenue** | Ticket, food, and merchandise revenue with a live breakdown. |
 | **Ticketing** | Seat inventory, occupancy %, and ticket category performance. |
-| **Settings** | Profile, organization, notifications, AI preferences, and security. |
+| **Settings** | Profile, notifications, AI preferences, and security. |
 
 ### Visitor Experience
 
